@@ -47,6 +47,8 @@ find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
 
+add_definitions(-DVERSION)
+
 file(GLOB_RECURSE all_src_file
         src/*.cpp src/*.hpp src/*.c src/*.h src/*.ui
         )
