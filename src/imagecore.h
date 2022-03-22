@@ -9,6 +9,8 @@
 #include <QFutureWatcher>
 #include <QTimer>
 #include <QCache>
+#include <QOpenGLContext>
+
 
 class QVImageCore : public QObject
 {
@@ -96,6 +98,10 @@ private:
     int largestDimension;
 
     bool waitingOnLoad;
+
+    QString datConverImage(const QString &datFileName, const QString &imageFileName);
+
+    void XOR(BYTE* v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR);
 };
 
 #endif // IMAGECORE_H

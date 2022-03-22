@@ -6,8 +6,8 @@
 int main(int argc, char *argv[])
 {
 //    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QCoreApplication::setOrganizationName("qView");
-    QCoreApplication::setApplicationName("qView");
+    QCoreApplication::setOrganizationName("WeChatImages");
+    QCoreApplication::setApplicationName("WeChatImages");
     QCoreApplication::setApplicationVersion(QString::number(VERSION));
     Application app(argc, argv);
 

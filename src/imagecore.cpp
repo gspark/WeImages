@@ -115,18 +115,30 @@ void QVImageCore::loadFile(const QString &fileName)
 
 QVImageCore::ReadData QVImageCore::readFile(const QString &fileName, bool forCache)
 {
+    QFileInfo fileInfo(fileName);
+    QString imageFileName(fileName);
+    if ( fileInfo.suffix() == "dat") {
+        // wechat picture
+
+        QString imageFile = datConverImage(fileName, "z:\\temp\\" + fileInfo.baseName());
+        if (imageFile != fileInfo.baseName()) {
+            imageFileName = imageFile;
+        }
+    }
+
+
     QImageReader imageReader;
     imageReader.setDecideFormatFromContent(true);
     imageReader.setAutoTransform(true);
 
-    imageReader.setFileName(fileName);
+    imageReader.setFileName(imageFileName);
 
     QPixmap readPixmap;
     if (imageReader.format() == "svg" || imageReader.format() == "svgz")
     {
         // Render vectors into a high resolution
         QIcon icon;
-        icon.addFile(fileName);
+        icon.addFile(imageFileName);
         readPixmap = icon.pixmap(largestDimension);
         // If this fails, try reading the normal way so that a proper error message is given
         if (readPixmap.isNull())
@@ -140,7 +152,7 @@ QVImageCore::ReadData QVImageCore::readFile(const QString &fileName, bool forCac
 
     ReadData readData = {
         readPixmap,
-        QFileInfo(fileName),
+        QFileInfo(imageFileName),
         imageReader.size(),
     };
     // Only error out when not loading for cache
@@ -549,4 +561,100 @@ void QVImageCore::settingsUpdated()
 
     //update folder info to re-sort
     updateFolderInfo();
+}
+
+QString QVImageCore::datConverImage(const QString &datFileName, const QString &imageFileName) {
+    BYTE byJPG1 = 0xFF;
+    BYTE byJPG2 = 0xD8;
+    BYTE byGIF1 = 0x47;
+    BYTE byGIF2 = 0x49;
+    BYTE byPNG1 = 0x89;
+    BYTE byPNG2 = 0x50;
+
+    HANDLE hDatFile = INVALID_HANDLE_VALUE;
+    HANDLE hImageFile = INVALID_HANDLE_VALUE;
+
+    QString imageFile(imageFileName);
+    do
+    {
+        hDatFile = CreateFile(datFileName.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+        if (INVALID_HANDLE_VALUE == hDatFile)
+            break;
+
+        // 读取内容前2个字节
+        BYTE byBuf[64*1024] = { 0 };
+        DWORD dwReadLen = 0;
+        BOOL bRet = ReadFile(hDatFile, byBuf, 2, &dwReadLen, NULL);
+        if (!bRet || 2 != dwReadLen)
+            break;
+
+        // 开始异或判断
+        BYTE byJ1 = byJPG1 ^ byBuf[0];
+        BYTE byJ2 = byJPG2 ^ byBuf[1];
+        BYTE byG1 = byGIF1 ^ byBuf[0];
+        BYTE byG2 = byGIF2 ^ byBuf[1];
+        BYTE byP1 = byPNG1 ^ byBuf[0];
+        BYTE byP2 = byPNG2 ^ byBuf[1];
+
+        // 判断异或值
+        BYTE byXOR = 0;
+        if (byJ1 == byJ2)
+        {
+            imageFile += ".jpg";
+            byXOR = byJ1;
+        }
+        else if (byG1 == byG2)
+        {
+            imageFile += ".gif";
+            byXOR = byG1;
+        }
+        else if (byP1 == byP2)
+        {
+            imageFile += ".png";
+            byXOR = byP1;
+        }
+        else
+            break;
+
+        SetFilePointer(hDatFile, 0, NULL, FILE_BEGIN); // 设置到文件头开始
+        hImageFile = CreateFile(imageFile.toStdWString().c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+        if (INVALID_HANDLE_VALUE == hImageFile)
+            break;
+
+        DWORD dwWriteLen = 0;
+        do
+        {
+            dwReadLen = 0;
+            bRet = ReadFile(hDatFile, byBuf, 64 * 1024, &dwReadLen, NULL);
+            if (!bRet)
+                break;
+
+            XOR(byBuf, dwReadLen, byXOR);
+
+            bRet = WriteFile(hImageFile, byBuf, dwReadLen, &dwWriteLen, NULL);
+            if (!bRet || dwReadLen != dwWriteLen)
+                break;
+
+        } while (dwReadLen == 64*1024);
+    } while (FALSE);
+
+    if (INVALID_HANDLE_VALUE != hDatFile)
+    {
+        CloseHandle(hDatFile);
+        hDatFile = INVALID_HANDLE_VALUE;
+    }
+
+    if (INVALID_HANDLE_VALUE != hImageFile)
+    {
+        CloseHandle(hImageFile);
+        hImageFile = INVALID_HANDLE_VALUE;
+    }
+    return imageFile;
+}
+
+void QVImageCore::XOR(BYTE *v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR) {
+    for (int i = 0; i < v_dwBufLen; i++)
+    {
+        v_pbyBuf[i] ^= byXOR;
+    }
 }

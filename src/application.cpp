@@ -9,7 +9,7 @@
 
 Application::Application(int &argc, char **argv) : QApplication(argc, argv)
 {
-    setDesktopFileName("com.interversehq.qView.desktop");
+    setDesktopFileName("WeChatImages.desktop");
 
     // Connections
     connect(&actionManager, &ActionManager::recentsMenuUpdated, this, &Application::recentsMenuUpdated);
