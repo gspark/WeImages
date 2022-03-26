@@ -1,7 +1,5 @@
 #include "graphicsview.h"
-#include "application.h"
 #include "infodialog.h"
-#include "cocoafunctions.h"
 #include <QWheelEvent>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
@@ -63,7 +61,7 @@ QVGraphicsView::QVGraphicsView(QWidget *parent) : QGraphicsView(parent)
     scene->addItem(loadedPixmapItem);
 
     // Connect to settings signal
-    connect(&qvApp->getSettingsManager(), &SettingsManager::settingsUpdated, this, &QVGraphicsView::settingsUpdated);
+//    connect(&qvApp->getSettingsManager(), &SettingsManager::settingsUpdated, this, &QVGraphicsView::settingsUpdated);
     settingsUpdated();
 }
 
@@ -219,7 +217,7 @@ void QVGraphicsView::loadMimeData(const QMimeData *mimeData)
             first = false;
             continue;
         }
-        Application::openFile(url.toString());
+//        Application::openFile(url.toString());
     }
 }
 
@@ -231,7 +229,7 @@ void QVGraphicsView::loadFile(const QString &fileName)
 void QVGraphicsView::postLoad()
 {
     updateLoadedPixmapItem();
-    qvApp->getActionManager().addFileToRecentsList(getCurrentFileDetails().fileInfo);
+//    qvApp->getActionManager().addFileToRecentsList(getCurrentFileDetails().fileInfo);
 
     emit fileChanged();
 }
@@ -625,60 +623,60 @@ void QVGraphicsView::error(int errorNum, const QString &errorString, const QStri
 
 void QVGraphicsView::settingsUpdated()
 {
-    auto &settingsManager = qvApp->getSettingsManager();
-
-    //bgcolor
-    QBrush newBrush;
-    newBrush.setStyle(Qt::SolidPattern);
-    if (!settingsManager.getBoolean("bgcolorenabled"))
-    {
-        newBrush.setColor(QColor(0, 0, 0, 0));
-    }
-    else
-    {
-        QColor newColor;
-        newColor.setNamedColor(settingsManager.getString("bgcolor"));
-        newBrush.setColor(newColor);
-    }
-    setBackgroundBrush(newBrush);
-
-    //filtering
-    if (settingsManager.getBoolean("filteringenabled"))
-        loadedPixmapItem->setTransformationMode(Qt::SmoothTransformation);
-    else
-        loadedPixmapItem->setTransformationMode(Qt::FastTransformation);
-
-    //scaling
-    isScalingEnabled = settingsManager.getBoolean("scalingenabled");
-    if (!isScalingEnabled)
-        makeUnscaled();
-
-    //scaling2
-    if (!isScalingEnabled)
-        isScalingTwoEnabled = false;
-    else
-        isScalingTwoEnabled = settingsManager.getBoolean("scalingtwoenabled");
-
-    //cropmode
-    cropMode = settingsManager.getInteger("cropmode");
-
-    //scalefactor
-    scaleFactor = settingsManager.getInteger("scalefactor")*0.01+1;
-
-    //resize past actual size
-    isPastActualSizeEnabled = settingsManager.getBoolean("pastactualsizeenabled");
-
-    //scrolling zoom
-    isScrollZoomsEnabled = settingsManager.getBoolean("scrollzoomsenabled");
-
-    //cursor zoom
-    isCursorZoomEnabled = settingsManager.getBoolean("cursorzoom");
-
-    //loop folders
-    isLoopFoldersEnabled = settingsManager.getBoolean("loopfoldersenabled");
-
-    if (getCurrentFileDetails().isPixmapLoaded)
-        resetScale();
+//    auto &settingsManager = qvApp->getSettingsManager();
+//
+//    //bgcolor
+//    QBrush newBrush;
+//    newBrush.setStyle(Qt::SolidPattern);
+//    if (!settingsManager.getBoolean("bgcolorenabled"))
+//    {
+//        newBrush.setColor(QColor(0, 0, 0, 0));
+//    }
+//    else
+//    {
+//        QColor newColor;
+//        newColor.setNamedColor(settingsManager.getString("bgcolor"));
+//        newBrush.setColor(newColor);
+//    }
+//    setBackgroundBrush(newBrush);
+//
+//    //filtering
+//    if (settingsManager.getBoolean("filteringenabled"))
+//        loadedPixmapItem->setTransformationMode(Qt::SmoothTransformation);
+//    else
+//        loadedPixmapItem->setTransformationMode(Qt::FastTransformation);
+//
+//    //scaling
+//    isScalingEnabled = settingsManager.getBoolean("scalingenabled");
+//    if (!isScalingEnabled)
+//        makeUnscaled();
+//
+//    //scaling2
+//    if (!isScalingEnabled)
+//        isScalingTwoEnabled = false;
+//    else
+//        isScalingTwoEnabled = settingsManager.getBoolean("scalingtwoenabled");
+//
+//    //cropmode
+//    cropMode = settingsManager.getInteger("cropmode");
+//
+//    //scalefactor
+//    scaleFactor = settingsManager.getInteger("scalefactor")*0.01+1;
+//
+//    //resize past actual size
+//    isPastActualSizeEnabled = settingsManager.getBoolean("pastactualsizeenabled");
+//
+//    //scrolling zoom
+//    isScrollZoomsEnabled = settingsManager.getBoolean("scrollzoomsenabled");
+//
+//    //cursor zoom
+//    isCursorZoomEnabled = settingsManager.getBoolean("cursorzoom");
+//
+//    //loop folders
+//    isLoopFoldersEnabled = settingsManager.getBoolean("loopfoldersenabled");
+//
+//    if (getCurrentFileDetails().isPixmapLoaded)
+//        resetScale();
 }
 
 void QVGraphicsView::closeImage()

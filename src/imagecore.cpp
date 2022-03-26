@@ -1,5 +1,4 @@
 #include "imagecore.h"
-#include "application.h"
 #include <random>
 #include <QDir>
 #include <QUrl>
@@ -59,7 +58,7 @@ QVImageCore::QVImageCore(QObject *parent) : QObject(parent)
     waitingOnLoad = false;
 
     // Connect to settings signal
-    connect(&qvApp->getSettingsManager(), &SettingsManager::settingsUpdated, this, &QVImageCore::settingsUpdated);
+//    connect(&qvApp->getSettingsManager(), &SettingsManager::settingsUpdated, this, &QVImageCore::settingsUpdated);
     settingsUpdated();
 }
 
@@ -87,30 +86,30 @@ void QVImageCore::loadFile(const QString &fileName)
     waitingOnLoad = true;
 
 
-    //check if cached already before loading the long way
-    auto previouslyRecordedFileSize = qvApp->getPreviouslyRecordedFileSize(sanitaryFileName);
-    auto *cachedPixmap = new QPixmap();
-    if (QPixmapCache::find(sanitaryFileName, cachedPixmap) &&
-        !cachedPixmap->isNull() &&
-        previouslyRecordedFileSize == fileInfo.size())
-    {
-        QSize previouslyRecordedImageSize = qvApp->getPreviouslyRecordedImageSize(sanitaryFileName);
-        ReadData readData = {
-            matchCurrentRotation(*cachedPixmap),
-            fileInfo,
-            previouslyRecordedImageSize
-        };
-        loadPixmap(readData, true);
-    }
-    else
-    {
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        loadFutureWatcher.setFuture(QtConcurrent::run(this, &QVImageCore::readFile, sanitaryFileName, false));
-#else
-        loadFutureWatcher.setFuture(QtConcurrent::run(&QVImageCore::readFile, this, sanitaryFileName, false));
-#endif
-    }
-    delete cachedPixmap;
+//    //check if cached already before loading the long way
+//    auto previouslyRecordedFileSize = qvApp->getPreviouslyRecordedFileSize(sanitaryFileName);
+//    auto *cachedPixmap = new QPixmap();
+//    if (QPixmapCache::find(sanitaryFileName, cachedPixmap) &&
+//        !cachedPixmap->isNull() &&
+//        previouslyRecordedFileSize == fileInfo.size())
+//    {
+//        QSize previouslyRecordedImageSize = qvApp->getPreviouslyRecordedImageSize(sanitaryFileName);
+//        ReadData readData = {
+//            matchCurrentRotation(*cachedPixmap),
+//            fileInfo,
+//            previouslyRecordedImageSize
+//        };
+//        loadPixmap(readData, true);
+//    }
+//    else
+//    {
+//#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+//        loadFutureWatcher.setFuture(QtConcurrent::run(this, &QVImageCore::readFile, sanitaryFileName, false));
+//#else
+//        loadFutureWatcher.setFuture(QtConcurrent::run(&QVImageCore::readFile, this, sanitaryFileName, false));
+//#endif
+//    }
+//    delete cachedPixmap;
 }
 
 QVImageCore::ReadData QVImageCore::readFile(const QString &fileName, bool forCache)
@@ -240,27 +239,27 @@ QFileInfoList QVImageCore::getCompatibleFiles()
 {
     QFileInfoList fileInfoList;
 
-    QMimeDatabase mimeDb;
-    const auto &regs = qvApp->getFilterRegExpList();
-    const auto &mimeTypes = qvApp->getMimeTypeNameList();
-
-    const QFileInfoList currentFolder = currentFileDetails.fileInfo.dir().entryInfoList();
-    for (const QFileInfo &fileInfo : currentFolder)
-    {
-        bool matched = false;
-        const QString name = fileInfo.fileName();
-        for (const QRegularExpression &reg : regs)
-        {
-            if (reg.match(name).hasMatch()) {
-                matched = true;
-                break;
-            }
-        }
-        if (matched || mimeTypes.contains(mimeDb.mimeTypeForFile(fileInfo).name().toUtf8()))
-        {
-            fileInfoList.append(fileInfo);
-        }
-    }
+//    QMimeDatabase mimeDb;
+//    const auto &regs = qvApp->getFilterRegExpList();
+//    const auto &mimeTypes = qvApp->getMimeTypeNameList();
+//
+//    const QFileInfoList currentFolder = currentFileDetails.fileInfo.dir().entryInfoList();
+//    for (const QFileInfo &fileInfo : currentFolder)
+//    {
+//        bool matched = false;
+//        const QString name = fileInfo.fileName();
+//        for (const QRegularExpression &reg : regs)
+//        {
+//            if (reg.match(name).hasMatch()) {
+//                matched = true;
+//                break;
+//            }
+//        }
+//        if (matched || mimeTypes.contains(mimeDb.mimeTypeForFile(fileInfo).name().toUtf8()))
+//        {
+//            fileInfoList.append(fileInfo);
+//        }
+//    }
 
     return fileInfoList;
 }
@@ -422,9 +421,9 @@ void QVImageCore::addToCache(const ReadData &readData)
 
     QPixmapCache::insert(readData.fileInfo.absoluteFilePath(), readData.pixmap);
 
-    auto *size = new qint64(readData.fileInfo.size());
-    qvApp->setPreviouslyRecordedFileSize(readData.fileInfo.absoluteFilePath(), size);
-    qvApp->setPreviouslyRecordedImageSize(readData.fileInfo.absoluteFilePath(), new QSize(readData.size));
+//    auto *size = new qint64(readData.fileInfo.size());
+//    qvApp->setPreviouslyRecordedFileSize(readData.fileInfo.absoluteFilePath(), size);
+//    qvApp->setPreviouslyRecordedImageSize(readData.fileInfo.absoluteFilePath(), new QSize(readData.size));
 }
 
 void QVImageCore::jumpToNextFrame()
@@ -533,34 +532,34 @@ QPixmap QVImageCore::scaleExpensively(const QSizeF desiredSize)
 
 void QVImageCore::settingsUpdated()
 {
-    auto &settingsManager = qvApp->getSettingsManager();
-
-    //loop folders
-    isLoopFoldersEnabled = settingsManager.getBoolean("loopfoldersenabled");
-
-    //preloading mode
-    preloadingMode = settingsManager.getInteger("preloadingmode");
-    switch (preloadingMode) {
-    case 1:
-    {
-        QPixmapCache::setCacheLimit(51200);
-        break;
-    }
-    case 2:
-    {
-        QPixmapCache::setCacheLimit(204800);
-        break;
-    }
-    }
-
-    //sort mode
-    sortMode = settingsManager.getInteger("sortmode");
-
-    //sort ascending
-    sortDescending = settingsManager.getBoolean("sortdescending");
-
-    //update folder info to re-sort
-    updateFolderInfo();
+//    auto &settingsManager = qvApp->getSettingsManager();
+//
+//    //loop folders
+//    isLoopFoldersEnabled = settingsManager.getBoolean("loopfoldersenabled");
+//
+//    //preloading mode
+//    preloadingMode = settingsManager.getInteger("preloadingmode");
+//    switch (preloadingMode) {
+//    case 1:
+//    {
+//        QPixmapCache::setCacheLimit(51200);
+//        break;
+//    }
+//    case 2:
+//    {
+//        QPixmapCache::setCacheLimit(204800);
+//        break;
+//    }
+//    }
+//
+//    //sort mode
+//    sortMode = settingsManager.getInteger("sortmode");
+//
+//    //sort ascending
+//    sortDescending = settingsManager.getBoolean("sortdescending");
+//
+//    //update folder info to re-sort
+//    updateFolderInfo();
 }
 
 QString QVImageCore::datConverImage(const QString &datFileName, const QString &imageFileName) {

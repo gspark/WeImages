@@ -1,976 +1,404 @@
 #include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "application.h"
-#include "cocoafunctions.h"
-#include "renamedialog.h"
+#include "filewidget.h"
+#include "config.h"
 
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QString>
-#include <QGraphicsPixmapItem>
-#include <QPixmap>
-#include <QClipboard>
-#include <QCoreApplication>
-#include <QFileSystemWatcher>
+#include <QtDebug>
+#include <QApplication>
+#include <QTranslator>
 #include <QProcess>
-#include <QDesktopServices>
-#include <QContextMenuEvent>
-#include <QMovie>
-#include <QImageWriter>
-#include <QSettings>
-#include <QStyle>
-#include <QIcon>
-#include <QMimeDatabase>
+#include <QAction>
 #include <QScreen>
-#include <QCursor>
-#include <QInputDialog>
-#include <QProgressDialog>
-#include <QFutureWatcher>
-#include <QtConcurrent/QtConcurrentRun>
+#include <QFileIconProvider>
+#include <QFileDialog>
+#include <QDockWidget>
+#include <QMessageBox>
+#include <QSplitter>
+#include <QToolBar>
+#include <QMenuBar>
+#include <QWidget>
 #include <QMenu>
-#include <QWindow>
-#include <QTemporaryFile>
+#include <QActionGroup>
+#include "filesystemmodel.h"
+#include "navdockwidget.h"
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
-    setAttribute(Qt::WA_DeleteOnClose);
 
-    // Initialize variables
-    justLaunchedWithImage = false;
-    storedWindowState = Qt::WindowNoState;
+MainWindow::MainWindow(QWidget *parent)
+        : QMainWindow(parent) {
+    setWindowTitle(tr("WeChatImages"));
 
-    // Initialize graphicsview
-    graphicsView = new QVGraphicsView(this);
-    centralWidget()->layout()->addWidget(graphicsView);
+    fileModel = new FileSystemModel();
+    navDock = new NavDockWidget(fileModel);
 
-    // Hide fullscreen label by default
-    ui->fullscreenLabel->hide();
+    cutShortcut = new QShortcut(this);
+    copyShortcut = new QShortcut(this);
+    pasteShortcut = new QShortcut(this);
+    deleteShortcut = new QShortcut(this);
+    refreshShortcut = new QShortcut(this);
+    expCollOneShortcut = new QShortcut(this);
+    expCollAllShortcut = new QShortcut(this);
 
-    // Connect graphicsview signals
-    connect(graphicsView, &QVGraphicsView::fileChanged, this, &MainWindow::fileChanged);
-    connect(graphicsView, &QVGraphicsView::updatedLoadedPixmapItem, this, &MainWindow::setWindowSize);
-    connect(graphicsView, &QVGraphicsView::cancelSlideshow, this, &MainWindow::cancelSlideshow);
+    fileModelInit();
+    setupWidgets();
+    setupToolBar();
+    setupMenuBar();
+    setupShortCut();
 
-    // Initialize escape shortcut
-    escShortcut = new QShortcut(Qt::Key_Escape, this);
-    connect(escShortcut, &QShortcut::activated, this, [this](){
-        if (windowState() == Qt::WindowFullScreen)
-            toggleFullScreen();
-    });
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::saveWindowInfo);
 
-    // Enable drag&dropping
-    setAcceptDrops(true);
+    loadWindowInfo();
+}
 
-    // Make info dialog object
-    info = new InfoDialog(this);
+MainWindow::~MainWindow() {
+    cutShortcut->deleteLater();
+    copyShortcut->deleteLater();
+    pasteShortcut->deleteLater();
+    deleteShortcut->deleteLater();
+    refreshShortcut->deleteLater();
+    expCollOneShortcut->deleteLater();
+    expCollAllShortcut->deleteLater();
 
-    // Timer for slideshow
-    slideshowTimer = new QTimer(this);
-    connect(slideshowTimer, &QTimer::timeout, this, &MainWindow::slideshowAction);
+    navDock->deleteLater();
+    fileModel->deleteLater();
+}
 
-    // Context menu
-    auto &actionManager = qvApp->getActionManager();
 
-    contextMenu = new QMenu(this);
-
-    contextMenu->addAction(actionManager.cloneAction("open"));
-    contextMenu->addAction(actionManager.cloneAction("openurl"));
-    contextMenu->addMenu(actionManager.buildRecentsMenu(true, contextMenu));
-    contextMenu->addMenu(actionManager.buildOpenWithMenu(contextMenu));
-    contextMenu->addAction(actionManager.cloneAction("opencontainingfolder"));
-    contextMenu->addAction(actionManager.cloneAction("showfileinfo"));
-    contextMenu->addSeparator();
-    contextMenu->addAction(actionManager.cloneAction("rename"));
-    contextMenu->addAction(actionManager.cloneAction("delete"));
-    contextMenu->addSeparator();
-    contextMenu->addAction(actionManager.cloneAction("nextfile"));
-    contextMenu->addAction(actionManager.cloneAction("previousfile"));
-    contextMenu->addSeparator();
-    contextMenu->addMenu(actionManager.buildViewMenu(true, contextMenu));
-    contextMenu->addMenu(actionManager.buildToolsMenu(true, contextMenu));
-    contextMenu->addMenu(actionManager.buildHelpMenu(true, contextMenu));
-
-    connect(contextMenu, &QMenu::triggered, this, [this](QAction *triggeredAction){
-        ActionManager::actionTriggered(triggeredAction, this);
-    });
-
-    // Initialize menubar
-    setMenuBar(actionManager.buildMenuBar(this));
-    // Stop actions conflicting with the window's actions
-    const auto menubarActions = ActionManager::getAllNestedActions(menuBar()->actions());
-    for (auto action : menubarActions)
-    {
-        action->setShortcutContext(Qt::WidgetShortcut);
-    }
-    connect(menuBar(), &QMenuBar::triggered, this, [this](QAction *triggeredAction){
-        ActionManager::actionTriggered(triggeredAction, this);
-    });
-
-    // Add all actions to this window so keyboard shortcuts are always triggered
-    // using virtual menu to hold them so i can connect to the triggered signal
-    virtualMenu = new QMenu(this);
-    const auto &actionKeys = actionManager.getActionLibrary().keys();
-    for (const QString &key : actionKeys)
-    {
-        virtualMenu->addAction(actionManager.cloneAction(key));
-    }
-    addActions(virtualMenu->actions());
-    connect(virtualMenu, &QMenu::triggered, this, [this](QAction *triggeredAction){
-       ActionManager::actionTriggered(triggeredAction, this);
-    });
-
-    // Connect functions to application components
-    connect(&qvApp->getShortcutManager(), &ShortcutManager::shortcutsUpdated, this, &MainWindow::shortcutsUpdated);
-    connect(&qvApp->getSettingsManager(), &SettingsManager::settingsUpdated, this, &MainWindow::settingsUpdated);
-    settingsUpdated();
-    shortcutsUpdated();
-
-    // Connection for open with menu population futurewatcher
-    connect(&openWithFutureWatcher, &QFutureWatcher<QList<OpenWith::OpenWithItem>>::finished, this, [this](){
-        populateOpenWithMenu(openWithFutureWatcher.result());
-    });
-
-#ifdef COCOA_LOADED
-    QVCocoaFunctions::setFullSizeContentView(windowHandle());
+void MainWindow::fileModelInit() {
+#if DISABLE_FILE_WATCHER
+    fileModel->setOptions(QFileSystemModel::DontWatchForChanges);
 #endif
 
-    // Load window geometry
-    QSettings settings;
-    restoreGeometry(settings.value("geometry").toByteArray());
+    fileModel->setRootPath("");
+    /*
+     * default QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs
+     * add QDir::System will show all shortcut(.lnk file) and system files
+     * add QDir::Hidden will show some files that not visible on Windows, these files may be modified by mistake.
+     */
+    fileModel->setFilter(QDir::AllEntries | QDir::NoDot | QDir::AllDirs | QDir::System/* | QDir::Hidden*/);
+    fileModel->setReadOnly(true);
 }
 
-MainWindow::~MainWindow()
-{
-    delete ui;
+void MainWindow::setupWidgets() {
+    // central widget
+    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, fileModel, this);
+    connectShortcut(widget);
+    setCentralWidget(widget);
+
+    // dock
+    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+
+    // navigation dock
+    navDock->setObjectName(OBJECTNAME_NAV_DOCK);
+    navDock->setWindowTitle(tr("Navigation Bar"));  // show in the dock
+    addDockWidget(Qt::LeftDockWidgetArea, navDock);
+    connect(navDock, &NavDockWidget::navDockClicked, widget, &FileWidget::onNavigateBarClicked);
+    connect(refreshShortcut, &QShortcut::activated, navDock, &NavDockWidget::refreshTreeView);
 }
 
-bool MainWindow::event(QEvent *event)
-{
-    if (event->type() == QEvent::WindowActivate)
-    {
-        qvApp->addToLastActiveWindows(this);
-    }
-    return QMainWindow::event(event);
+void MainWindow::setupToolBar() {
+    toolBar = addToolBar(tr("Quick Button"));
+    toolBar->setObjectName(OBJECTNAME_TOOLBAR);
+//    toolBar->setIconSize(QSize(20, 30));
+//    toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    toolBar->setIconSize(QSize(15, 20));
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    qDebug() << QString("toolBar default menu %1").arg(
+            toolBar->contextMenuPolicy());   // "toolBar default menu 1" Qt::DefaultContextMenu
+    toolBar->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(toolBar, &QToolBar::customContextMenuRequested, this, &MainWindow::toolBarOnTextMenu);
+
+
+//    foreach (QFileInfo info, QDir::drives()) {
+//        QString path = info.absolutePath();     // example "C:/", file's path absolute path. This doesn't include the file name
+//        path = QDir::toNativeSeparators(path);  // example "C:\\"
+//        toolBar->addAction(fileModel->iconProvider()->icon(info), path);
+//    }
+//    toolBar->addAction("+");
+
+    connect(toolBar, &QToolBar::actionTriggered, this, &MainWindow::onToolBarActionTriggered);
 }
 
-void MainWindow::contextMenuEvent(QContextMenuEvent *event)
-{
-    QMainWindow::contextMenuEvent(event);
+void MainWindow::setupMenuBar() {
+    // file menu
+    QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+    QAction *exitAction = fileMenu->addAction(tr("E&xit"), qApp, &QCoreApplication::quit, Qt::QueuedConnection);
+    exitAction->setShortcuts(QKeySequence::Quit);
+    exitAction->setShortcut(Qt::CTRL | Qt::Key_Q);
 
-    // Show native menu on macOS with cocoa framework loaded
-#ifdef COCOA_LOADED
-    // On regular context menu, recents submenu updates right before it is shown.
-    // The native cocoa menu does not update elements until the entire menu is reopened, so we update first
-    qvApp->getActionManager().loadRecentsList();
-    QVCocoaFunctions::showMenu(contextMenu, event->pos(), windowHandle());
-#else
-    contextMenu->popup(event->globalPos());
-#endif
+    // view menu
+    QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
+    navDock->toggleViewAction()->setText(tr("Navi&gation Bar"));
+    navDock->toggleViewAction()->setShortcut(Qt::CTRL | Qt::Key_G);
+    viewMenu->addAction(navDock->toggleViewAction());
+
+    viewMenu->addSeparator();
+
+    toolBar->toggleViewAction()->setText(tr("&Toolbar"));
+    toolBar->toggleViewAction()->setShortcut(Qt::CTRL | Qt::Key_B);
+    viewMenu->addAction(toolBar->toggleViewAction());
+
+    viewMenu->addSeparator();
+
+//    FileWidget *widget = (FileWidget *)((QSplitter *)centralWidget())->widget(0);
+    auto *widget = (FileWidget *) centralWidget();
+    QAction *addTabAct = viewMenu->addAction(tr("Add &Tab"), widget, &FileWidget::fileWidgetAddTab);
+    addTabAct->setShortcut(Qt::CTRL | Qt::Key_T);
+
+    auto *areaActions = new QActionGroup(this);
+    areaActions->setExclusive(true);
+    // help menu
+    QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
+    QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
+//    aboutAct->setToolTip(tr("Show the application's About box"));
+    QAction *aboutQtAct = helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
+//    aboutQtAct->setToolTip(tr("Show the Qt library's About box"));
 }
 
-void MainWindow::showEvent(QShowEvent *event)
-{
-    if (!menuBar()->sizeHint().isEmpty())
-    {
-        ui->fullscreenLabel->setMargin(0);
-        ui->fullscreenLabel->setMinimumHeight(menuBar()->sizeHint().height());
-    }
+void MainWindow::setupShortCut() {
+    cutShortcut->setKey(QKeySequence::Cut);
+    cutShortcut->setAutoRepeat(false);
 
-    QMainWindow::showEvent(event);
+    copyShortcut->setKey(QKeySequence::Copy);
+    copyShortcut->setAutoRepeat(false);
+
+    pasteShortcut->setKey(QKeySequence::Paste);
+    pasteShortcut->setAutoRepeat(false);
+
+    deleteShortcut->setKey(QKeySequence::Delete);
+    deleteShortcut->setAutoRepeat(false);
+
+    refreshShortcut->setKey(QKeySequence::Refresh);
+    refreshShortcut->setAutoRepeat(false);
+
+    expCollOneShortcut->setKey(Qt::CTRL | Qt::Key_E);
+    expCollOneShortcut->setAutoRepeat(false);
+
+    expCollAllShortcut->setKey(Qt::CTRL | Qt::Key_R);
+    expCollAllShortcut->setAutoRepeat(false);
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    QSettings settings;
-    settings.setValue("geometry", saveGeometry());
-
-    qvApp->deleteFromLastActiveWindows(this);
-    qvApp->getActionManager().untrackClonedActions(contextMenu);
-    qvApp->getActionManager().untrackClonedActions(menuBar());
-    qvApp->getActionManager().untrackClonedActions(virtualMenu);
-
-    QMainWindow::closeEvent(event);
+void MainWindow::connectShortcut(QWidget *widget) {
+//    qDebug() << QString("connect shortcut ") << (FileWidget *)widget;
+    connect(cutShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::cutSelectedItem);
+    connect(copyShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::copySelectedItem);
+    connect(pasteShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::pasteSelectedItem);
+    connect(deleteShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::deleteSelectedItem);
+    connect(refreshShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::refreshTreeView);
+    connect(expCollOneShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::expandCollapseOne);
+    connect(expCollAllShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::expandCollapseAll);
 }
 
-void MainWindow::changeEvent(QEvent *event)
-{
-    if (event->type() == QEvent::WindowStateChange)
-    {
-        const auto fullscreenActions = qvApp->getActionManager().getAllClonesOfAction("fullscreen", this);
-        for (const auto &fullscreenAction : fullscreenActions)
-        {
-            if (windowState() == Qt::WindowFullScreen)
-            {
-                fullscreenAction->setText(tr("Exit F&ull Screen"));
-                fullscreenAction->setIcon(QIcon::fromTheme("view-restore"));
-            }
-            else
-            {
-                fullscreenAction->setText(tr("Enter F&ull Screen"));
-                fullscreenAction->setIcon(QIcon::fromTheme("view-fullscreen"));
-            }
-        }
 
-        if (qvApp->getSettingsManager().getBoolean("fullscreendetails"))
-            ui->fullscreenLabel->setVisible(windowState() == Qt::WindowFullScreen);
-    }
-}
-
-void MainWindow::mousePressEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::MouseButton::BackButton)
-        previousFile();
-    else if (event->button() == Qt::MouseButton::ForwardButton)
-        nextFile();
-    else if (event->button() == Qt::MouseButton::MiddleButton)
-        resetZoom();
-
-    QMainWindow::mousePressEvent(event);
-}
-
-void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::MouseButton::LeftButton)
-        toggleFullScreen();
-    QMainWindow::mouseDoubleClickEvent(event);
-}
-
-void MainWindow::openFile(const QString &fileName)
-{
-    graphicsView->loadFile(fileName);
-    cancelSlideshow();
-}
-
-void MainWindow::settingsUpdated()
-{
-    auto &settingsManager = qvApp->getSettingsManager();
-
-    buildWindowTitle();
-
-    // menubarenabled
-    bool menuBarEnabled = settingsManager.getBoolean("menubarenabled");
-#ifdef Q_OS_MACOS
-    // Menu bar is effectively always enabled on macOS
-    menuBarEnabled = true;
-#endif
-    menuBar()->setVisible(menuBarEnabled);
-
-#ifdef COCOA_LOADED
-    // titlebaralwaysdark
-    QVCocoaFunctions::setVibrancy(settingsManager.getBoolean("titlebaralwaysdark"), windowHandle());
-    // quitonlastwindow
-    qvApp->setQuitOnLastWindowClosed(settingsManager.getBoolean("quitonlastwindow"));
-#endif
-
-    //slideshow timer
-    slideshowTimer->setInterval(static_cast<int>(settingsManager.getDouble("slideshowtimer")*1000));
-
-
-    ui->fullscreenLabel->setVisible(qvApp->getSettingsManager().getBoolean("fullscreendetails") && (windowState() == Qt::WindowFullScreen));
-
-    setWindowSize();
-}
-
-void MainWindow::shortcutsUpdated()
-{
-    // If esc is not used in a shortcut, let it exit fullscreen
-    escShortcut->setKey(Qt::Key_Escape);
-
-    const auto &actionLibrary = qvApp->getActionManager().getActionLibrary();
-    for (const auto &action : actionLibrary)
-    {
-        if (action->shortcuts().contains(QKeySequence(Qt::Key_Escape)))
-        {
-            escShortcut->setKey({});
-            break;
-        }
-    }
-}
-
-void MainWindow::openRecent(int i)
-{
-    auto recentsList = qvApp->getActionManager().getRecentsList();
-    graphicsView->loadFile(recentsList.value(i).filePath);
-    cancelSlideshow();
-}
-
-void MainWindow::fileChanged()
-{
-    requestPopulateOpenWithMenu();
-    disableActions();
-
-    refreshProperties();
-    buildWindowTitle();
-}
-
-void MainWindow::disableActions()
-{
-    const auto &actionLibrary = qvApp->getActionManager().getActionLibrary();
-    for (const auto &action : actionLibrary)
-    {
-        const auto &data = action->data().toStringList();
-        const auto &clonesOfAction = qvApp->getActionManager().getAllClonesOfAction(data.first(), this);
-
-        // Enable this window's actions when a file is loaded
-        if (data.last().contains("disable"))
-        {
-            for (const auto &clone : clonesOfAction)
-            {
-                const auto &cloneData = clone->data().toStringList();
-                if (cloneData.last() == "disable")
-                {
-                    clone->setEnabled(getCurrentFileDetails().isPixmapLoaded);
-                }
-                else if (cloneData.last() == "gifdisable")
-                {
-                    clone->setEnabled(getCurrentFileDetails().isMovieLoaded);
-                }
-                else if (cloneData.last() == "undodisable")
-                {
-                    clone->setEnabled(!lastDeletedFiles.isEmpty() && !lastDeletedFiles.top().pathInTrash.isEmpty());
-                }
-                else if (cloneData.last() == "folderdisable")
-                {
-                    clone->setEnabled(!getCurrentFileDetails().folderFileInfoList.isEmpty());
-                }
-            }
-        }
+void MainWindow::toolBarAddAction(bool addDir) {
+    if (toolBarList.count() >= MAX_TOOLBAR_COUNT) {
+        return;
     }
 
-    const auto &openWithMenus = qvApp->getActionManager().getAllClonesOfMenu("openwith");
-    for (const auto &menu : openWithMenus)
-    {
-        menu->setEnabled(getCurrentFileDetails().isPixmapLoaded);
-    }
-}
-
-void MainWindow::requestPopulateOpenWithMenu()
-{
-    openWithFutureWatcher.setFuture(QtConcurrent::run([&]{
-        const auto &curFilePath = getCurrentFileDetails().fileInfo.absoluteFilePath();
-        return OpenWith::getOpenWithItems(curFilePath);
-    }));
-}
-
-void MainWindow::populateOpenWithMenu(const QList<OpenWith::OpenWithItem> openWithItems)
-{
-    for (int i = 0; i < qvApp->getActionManager().getOpenWithMaxLength(); i++)
-    {
-        const auto clonedActions = qvApp->getActionManager().getAllClonesOfAction("openwith" + QString::number(i), this);
-        for (const auto &action : clonedActions)
-        {
-            // If we are within the bounds of the open with list
-            if (i < openWithItems.length())
-            {
-                auto openWithItem = openWithItems.value(i);
-
-                action->setVisible(true);
-                action->setText(openWithItem.name);
-                action->setIcon(openWithItem.icon);
-                auto data = action->data().toList();
-                data.replace(1, QVariant::fromValue(openWithItem));
-                action->setData(data);
-            }
-            else
-            {
-                action->setVisible(false);
-                action->setText(tr("Empty"));
-            }
-        }
-    }
-}
-
-void MainWindow::refreshProperties()
-{
-    int value4;
-    if (getCurrentFileDetails().isMovieLoaded)
-        value4 = graphicsView->getLoadedMovie().frameCount();
+    QString path;
+    QString dialogName = tr("Add Button");
+    if (addDir)
+        path = QFileDialog::getExistingDirectory(this, dialogName);
     else
-        value4 = 0;
-    info->setInfo(getCurrentFileDetails().fileInfo, getCurrentFileDetails().baseImageSize.width(), getCurrentFileDetails().baseImageSize.height(), value4);
-}
+        path = QFileDialog::getOpenFileName(this, dialogName);
+    path = QDir::toNativeSeparators(path);
 
-void MainWindow::buildWindowTitle()
-{
-    QString newString = "qView";
-    if (getCurrentFileDetails().fileInfo.isFile())
-    {
-        switch (qvApp->getSettingsManager().getInteger("titlebarmode")) {
-        case 1:
-        {
-            newString = getCurrentFileDetails().fileInfo.fileName();
-            break;
+    if (QFileInfo::exists(path) && !toolBarList.contains(path, Qt::CaseInsensitive)) {
+        qDebug() << "add quick path: " << path;
+
+        QFileInfo info(path);
+        QString text = QDir::toNativeSeparators(info.fileName().isEmpty() ? path : info.fileName());
+        QAction *newAct = new QAction;
+        newAct->setIcon(fileModel->iconProvider()->icon(info));
+        newAct->setText(text);
+        newAct->setToolTip(path);
+
+        // get the "+" action
+        QAction *action = toolBar->actions().at(toolBarList.count());
+        toolBar->insertAction(action, newAct);
+
+        toolBarList.append(path);
+        if (toolBarList.count() >= MAX_TOOLBAR_COUNT) {
+            action->setEnabled(false);
         }
-        case 2:
-        {
-            newString = QString::number(getCurrentFileDetails().loadedIndexInFolder+1);
-            newString += "/" + QString::number(getCurrentFileDetails().folderFileInfoList.count());
-            newString += " - " + getCurrentFileDetails().fileInfo.fileName();
-            break;
-        }
-        case 3:
-        {
-            newString = QString::number(getCurrentFileDetails().loadedIndexInFolder+1);
-            newString += "/" + QString::number(getCurrentFileDetails().folderFileInfoList.count());
-            newString += " - " + getCurrentFileDetails().fileInfo.fileName();
-            newString += " - "  + QString::number(getCurrentFileDetails().baseImageSize.width());
-            newString += "x" + QString::number(getCurrentFileDetails().baseImageSize.height());
-            newString += " - " + InfoDialog::formatBytes(getCurrentFileDetails().fileInfo.size());
-            newString += " - qView";
-            break;
-        }
-        }
-    }
-
-    setWindowTitle(newString);
-
-    // Update fullscreen label to titlebar text as well
-    ui->fullscreenLabel->setText(newString);
-
-    if (windowHandle() != nullptr)
-    {
-        if (getCurrentFileDetails().isPixmapLoaded)
-            windowHandle()->setFilePath(getCurrentFileDetails().fileInfo.absoluteFilePath());
-        else
-            windowHandle()->setFilePath("");
+    } else {
+        qDebug() << "quick path exist: " << path;
     }
 }
 
-void MainWindow::setWindowSize()
-{
-    if (!getCurrentFileDetails().isPixmapLoaded)
-        return;
-
-    //check if the program is configured to resize the window
-    int windowResizeMode = qvApp->getSettingsManager().getInteger("windowresizemode");
-    if (!(windowResizeMode == 2 || (windowResizeMode == 1 && justLaunchedWithImage)))
-        return;
-
-    //check if window is maximized or fullscreened
-    if (windowState() == Qt::WindowMaximized || windowState() == Qt::WindowFullScreen)
-        return;
-
-
-    qreal minWindowResizedPercentage = qvApp->getSettingsManager().getInteger("minwindowresizedpercentage")/100.0;
-    qreal maxWindowResizedPercentage = qvApp->getSettingsManager().getInteger("maxwindowresizedpercentage")/100.0;
-
-
-    justLaunchedWithImage = false;
-
-    QSize imageSize = getCurrentFileDetails().loadedPixmapSize;
-    imageSize -= QSize(4, 4);
-
-
-    // Try to grab the current screen
-    QScreen *currentScreen = screenAt(geometry().center());
-
-    // makeshift validity check
-    bool screenValid = QGuiApplication::screens().contains(currentScreen);
-    // Use first screen as fallback
-    if (!screenValid)
-        currentScreen = QGuiApplication::screens().at(0);
-
-    const QSize screenSize = currentScreen->size();
-
-    const QSize minWindowSize = screenSize * minWindowResizedPercentage;
-    const QSize maxWindowSize = screenSize * maxWindowResizedPercentage;
-
-    if (imageSize.width() < minWindowSize.width() || imageSize.height() < minWindowSize.height())
-    {
-        imageSize.scale(minWindowSize, Qt::KeepAspectRatio);
+void MainWindow::onToolBarActionTriggered(QAction *action) {
+    QString path = action->toolTip();
+    if (QFileInfo::exists(path)) {
+        qDebug() << QString("tool bar clicked %1").arg(path);
+//        ((FileWidget *)centralWidget())->onNavigateBarClicked(path);
+        ((FileWidget *) centralWidget())->onItemActivated(path);
+    } else {
+        toolBarAddAction();
     }
-    else if (imageSize.width() > maxWindowSize.width() || imageSize.height() > maxWindowSize.height())
-    {
-        imageSize.scale(maxWindowSize, Qt::KeepAspectRatio);
+}
+
+void MainWindow::toolBarOnTextMenu(const QPoint &pos) {
+    QMenu menu;
+    QAction *action;
+
+    // menu actions
+    QAction *addDirAction = nullptr;
+    QAction *addFileAction = nullptr;
+//    QAction *deleteAction = nullptr;
+    QAction *deleteAllAction = nullptr;
+
+    addDirAction = menu.addAction(tr("&Add Directory"));
+    if (toolBarList.count() >= MAX_TOOLBAR_COUNT) {
+        addDirAction->setEnabled(false);
+    }
+    addFileAction = menu.addAction(tr("Add &File"));
+    if (toolBarList.count() >= MAX_TOOLBAR_COUNT) {
+        addFileAction->setEnabled(false);
     }
 
-    // Windows reports the wrong minimum width, so we constrain the image size relative to the dpi to stop weirdness with tiny images
-#ifdef Q_OS_WIN
-    auto minimumImageSize = QSize(qRound(logicalDpiX()*1.5), logicalDpiY()/2);
-    if (imageSize.boundedTo(minimumImageSize) == imageSize)
-        imageSize = minimumImageSize;
-#endif
+    menu.addSeparator();
 
-    // Adjust image size for fullsizecontentview on mac
-#ifdef COCOA_LOADED
-    int obscuredHeight = QVCocoaFunctions::getObscuredHeight(window()->windowHandle());
-    imageSize.setHeight(imageSize.height() + obscuredHeight);
-#endif
-
-    if (menuBar()->isVisible())
-        imageSize.setHeight(imageSize.height() + menuBar()->height());
-
-    // Match center after new geometry
-    // This is smoother than a single geometry set for some reason
-    QRect oldRect = geometry();
-    resize(imageSize);
-    QRect newRect = geometry();
-    newRect.moveCenter(oldRect.center());
-
-    // Ensure titlebar is not above the top of the screen
-    const int titlebarHeight = QApplication::style()->pixelMetric(QStyle::PM_TitleBarHeight);
-    const int topOfScreen = currentScreen->availableGeometry().y();
-
-    if (newRect.y() < (topOfScreen + titlebarHeight))
-        newRect.setY(topOfScreen + titlebarHeight);
-
-    setGeometry(newRect);
-}
-
-// literally just copy pasted from Qt source code to maintain compatibility with 5.9 (although i've edited it now)
-QScreen *MainWindow::screenAt(const QPoint &point)
-{
-    QVarLengthArray<const QScreen *, 8> visitedScreens;
-    const auto screens = QGuiApplication::screens();
-    for (const QScreen *screen : screens) {
-        if (visitedScreens.contains(screen))
-            continue;
-        // The virtual siblings include the screen itself, so iterate directly
-        const auto siblings = screen->virtualSiblings();
-        for (QScreen *sibling : siblings) {
-            if (sibling->geometry().contains(point))
-                return sibling;
-            visitedScreens.append(sibling);
-        }
-    }
-    return nullptr;
-}
-
-bool MainWindow::getIsPixmapLoaded() const
-{
-    return getCurrentFileDetails().isPixmapLoaded;
-}
-
-void MainWindow::setJustLaunchedWithImage(bool value)
-{
-    justLaunchedWithImage = value;
-}
-
-void MainWindow::openWith(const OpenWith::OpenWithItem &openWithItem)
-{
-    OpenWith::openWith(getCurrentFileDetails().fileInfo.absoluteFilePath(), openWithItem);
-}
-
-void MainWindow::openContainingFolder()
-{
-    if (!getCurrentFileDetails().isPixmapLoaded)
-        return;
-
-    const QFileInfo selectedFileInfo = getCurrentFileDetails().fileInfo;
-
-#ifdef Q_OS_WIN
-    QProcess::startDetached("explorer", QStringList() << "/select," << QDir::toNativeSeparators(selectedFileInfo.absoluteFilePath()));
-#elif defined Q_OS_MACOS
-    QProcess::execute("open", QStringList() << "-R" << selectedFileInfo.absoluteFilePath());
-#else
-    QDesktopServices::openUrl(QUrl::fromLocalFile(selectedFileInfo.absolutePath()));
-#endif
-}
-
-void MainWindow::showFileInfo()
-{
-    refreshProperties();
-    info->show();
-    info->raise();
-}
-
-void MainWindow::askDeleteFile()
-{
-    if (!qvApp->getSettingsManager().getBoolean("askdelete"))
-    {
-        deleteFile();
-        return;
-    }
-
-    const QFileInfo &fileInfo = getCurrentFileDetails().fileInfo;
-    const QString fileName = getCurrentFileDetails().fileInfo.fileName();
-
-    if (!fileInfo.isWritable())
-    {
-        QMessageBox::critical(this, tr("Error"), tr("Can't delete %1:\nNo write permission or file is read-only.").arg(fileName));
-        return;
-    }
-
-    auto trashString = tr("Are you sure you want to move %1 to the Trash?").arg(fileName);
-#ifdef Q_OS_WIN
-    trashString = tr("Are you sure you want to move %1 to the Recycle Bin?").arg(fileName);
-#endif
-
-    auto *msgBox = new QMessageBox(QMessageBox::Question, tr("Delete"), trashString,
-                       QMessageBox::Yes | QMessageBox::No, this);
-    msgBox->setCheckBox(new QCheckBox(tr("Do not ask again")));
-
-    connect(msgBox, &QMessageBox::finished, this, [this, msgBox](int result){
-        if (result != 16384)
-            return;
-
-        QSettings settings;
-        settings.beginGroup("options");
-        settings.setValue("askdelete", !msgBox->checkBox()->isChecked());
-        qvApp->getSettingsManager().loadSettings();
-        this->deleteFile();
-    });
-
-    msgBox->open();
-}
-
-void MainWindow::deleteFile()
-{
-    const QFileInfo &fileInfo = getCurrentFileDetails().fileInfo;
-    const QString filePath = fileInfo.absoluteFilePath();
-    QString trashFilePath = "";
-
-    graphicsView->closeImage();
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    const QString fileName = fileInfo.fileName();
-
-    QFile file(filePath);
-    bool success = file.moveToTrash();
-    if (!success || QFile::exists(filePath))
-    {
-        openFile(filePath);
-        QMessageBox::critical(this, tr("Error"), tr("Can't delete %1.").arg(fileName));
-        return;
-    }
-
-    trashFilePath = file.fileName();
-#elif defined Q_OS_MACOS && COCOA_LOADED
-    QString trashedFile = QVCocoaFunctions::deleteFile(filePath);
-    trashFilePath = QUrl(trashedFile).toLocalFile(); // remove file:// protocol
-#elif defined Q_OS_UNIX && !defined Q_OS_MACOS
-    trashFilePath = deleteFileLinuxFallback(filePath, false);
-#else
-    QMessageBox::critical(this, tr("Not Supported"), tr("This program was compiled with an old version of Qt and this feature is not available.\n"
-                                                        "If you see this message, please report a bug!"));
-
-    return;
-#endif
-
-    auto afterDelete = qvApp->getSettingsManager().getInteger("afterdelete");
-    if (afterDelete > 1)
-        nextFile();
-    else if (afterDelete < 1)
-        previousFile();
-
-    lastDeletedFiles.push({trashFilePath, filePath});
-    disableActions();
-}
-
-QString MainWindow::deleteFileLinuxFallback(const QString &path, bool putBack)
-{
-    QStringList gioArgs = {"trash", path};
-    if (putBack)
-        gioArgs.insert(1, "--restore");
-
-    QProcess process;
-    process.start("gio", gioArgs);
-    process.waitForFinished();
-
-    if (process.error() != QProcess::FailedToStart && !putBack)
-    {
-        process.start("gio", {"trash", "--list"});
-        process.waitForFinished();
-
-        const auto &output = QString(process.readAllStandardOutput()).split("\n");
-        for (const auto &line : output)
-        {
-            if (line.contains(path))
-                return line.split("\t").at(0);
+    QMenu *deleteMenu = menu.addMenu(tr("&Delete"));
+    deleteAllAction = menu.addAction(tr("D&elete All"));
+    if (toolBarList.isEmpty()) {
+        deleteMenu->setEnabled(false);
+        deleteAllAction->setEnabled(false);
+    } else {
+        for (int i = 0; i < toolBarList.count(); i++) {
+            QString path = toolBarList.at(i);
+            QAction *deleteAction = deleteMenu->addAction(path);
+            deleteAction->setData(i);
         }
     }
 
 
-    qWarning("Failed to use linux fallback delete");
-    return "";
-}
+    qDebug() << "toolBarOnTextMenu";
 
-void MainWindow::undoDelete()
-{
-    if (lastDeletedFiles.isEmpty())
+    action = menu.exec(toolBar->mapToGlobal(pos));
+    if (!action)
         return;
 
-    const DeletedPaths lastDeletedFile = lastDeletedFiles.pop();
-    if (lastDeletedFile.pathInTrash.isEmpty() || lastDeletedFile.previousPath.isEmpty())
-        return;
+    // handle all selected items
+    if (action == addDirAction) {
+        toolBarAddAction();
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)) || (defined Q_OS_MACOS && COCOA_LOADED)
-    const QFileInfo fileInfo(lastDeletedFile.pathInTrash);
-    if (!fileInfo.isWritable())
-    {
-        QMessageBox::critical(this, tr("Error"), tr("Can't undo deletion of %1:\n"
-                                                    "No write permission or file is read-only.").arg(fileInfo.fileName()));
-        return;
-    }
+    } else if (action == addFileAction) {
+        toolBarAddAction(false);
 
-    bool success = QFile::rename(lastDeletedFile.pathInTrash, lastDeletedFile.previousPath);
-    if (!success)
-    {
-        QMessageBox::critical(this, tr("Error"), tr("Failed undoing deletion of %1.").arg(fileInfo.fileName()));
-    }
-#elif defined Q_OS_UNIX && !defined Q_OS_MACOS
-    deleteFileLinuxFallback(lastDeletedFile.pathInTrash, true);
-#else
-    QMessageBox::critical(this, tr("Not Supported"), tr("This program was compiled with an old version of Qt and this feature is not available.\n"
-                                                        "If you see this message, please report a bug!"));
+    } else if (action == deleteAllAction) {
+        toolBar->clear();
+        toolBar->addAction("+");
+        toolBarList.clear();
+//        if (toolBarList.count() < MAX_TOOLBAR_COUNT) {
+        QAction *action = toolBar->actions().at(toolBarList.count());
+        action->setEnabled(true);
+//        }
 
-    return;
-#endif
+    } else if (action != NULL) {
+        int index = action->data().toInt();
+        qDebug() << QString("delete [%1]: %2").arg(index).arg(action->text());
 
-    openFile(lastDeletedFile.previousPath);
-    disableActions();
-}
-
-void MainWindow::copy()
-{
-    auto *mimeData = graphicsView->getMimeData();
-    if (!mimeData->hasImage() || !mimeData->hasUrls())
-    {
-        mimeData->deleteLater();
-        return;
-    }
-
-    QApplication::clipboard()->setMimeData(mimeData);
-}
-
-void MainWindow::paste()
-{
-    const QMimeData *mimeData = QApplication::clipboard()->mimeData();
-    if (mimeData == nullptr)
-        return;
-
-    if (mimeData->hasText())
-    {
-        auto url = QUrl(mimeData->text());
-
-        if (url.isValid() && (url.scheme() == "http" || url.scheme() == "https"))
-        {
-//            openUrl(url);
-            return;
-        }
-    }
-
-    graphicsView->loadMimeData(mimeData);
-}
-
-void MainWindow::rename()
-{
-    if (!getCurrentFileDetails().isPixmapLoaded)
-        return;
-
-    auto *renameDialog = new RenameDialog(this, getCurrentFileDetails().fileInfo);
-    connect(renameDialog, &RenameDialog::newFileToOpen, this, &MainWindow::openFile);
-    connect(renameDialog, &RenameDialog::readyToRenameFile, this, [this] () {
-        if (auto device = graphicsView->getLoadedMovie().device()) {
-            device->close();
-        }
-    });
-
-    renameDialog->open();
-}
-
-void MainWindow::zoomIn()
-{
-    graphicsView->zoomIn();
-}
-
-void MainWindow::zoomOut()
-{
-    graphicsView->zoomOut();
-}
-
-void MainWindow::resetZoom()
-{
-    graphicsView->resetScale();
-}
-
-void MainWindow::originalSize()
-{
-    graphicsView->originalSize();
-}
-
-void MainWindow::rotateRight()
-{
-    graphicsView->rotateImage(90);
-    resetZoom();
-}
-
-void MainWindow::rotateLeft()
-{
-    graphicsView->rotateImage(-90);
-    resetZoom();
-}
-
-void MainWindow::mirror()
-{
-    graphicsView->scale(-1, 1);
-    resetZoom();
-}
-
-void MainWindow::flip()
-{
-    graphicsView->scale(1, -1);
-    resetZoom();
-}
-
-void MainWindow::firstFile()
-{
-    graphicsView->goToFile(QVGraphicsView::GoToFileMode::first);
-}
-
-void MainWindow::previousFile()
-{
-    graphicsView->goToFile(QVGraphicsView::GoToFileMode::previous);
-}
-
-void MainWindow::nextFile()
-{
-    graphicsView->goToFile(QVGraphicsView::GoToFileMode::next);
-}
-
-void MainWindow::lastFile()
-{
-    graphicsView->goToFile(QVGraphicsView::GoToFileMode::last);
-}
-
-void MainWindow::saveFrameAs()
-{
-    QSettings settings;
-    settings.beginGroup("recents");
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
-
-    if (graphicsView->getLoadedMovie().state() == QMovie::Running)
-    {
-        pause();
-    }
-    QFileDialog *saveDialog = new QFileDialog(this, tr("Save Frame As..."));
-    saveDialog->setDirectory(settings.value("lastFileDialogDir", QDir::homePath()).toString());
-    saveDialog->setNameFilters(qvApp->getNameFilterList());
-    saveDialog->selectFile(getCurrentFileDetails().fileInfo.baseName() + "-" + QString::number(graphicsView->getLoadedMovie().currentFrameNumber()) + ".png");
-    saveDialog->setDefaultSuffix("png");
-    saveDialog->setAcceptMode(QFileDialog::AcceptSave);
-    saveDialog->open();
-    connect(saveDialog, &QFileDialog::fileSelected, this, [=](const QString &fileName){
-        graphicsView->originalSize();
-        for(int i=0; i < graphicsView->getLoadedMovie().frameCount(); i++)
-            nextFrame();
-
-        graphicsView->getLoadedMovie().currentPixmap().save(fileName, nullptr, 100);
-        graphicsView->resetScale();
-    });
-}
-
-void MainWindow::pause()
-{
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
-
-    const auto pauseActions = qvApp->getActionManager().getAllClonesOfAction("pause", this);
-
-    if (graphicsView->getLoadedMovie().state() == QMovie::Running)
-    {
-        graphicsView->setPaused(true);
-        for (const auto &pauseAction : pauseActions)
-        {
-            pauseAction->setText(tr("Res&ume"));
-            pauseAction->setIcon(QIcon::fromTheme("media-playback-start"));
-        }
-    }
-    else
-    {
-        graphicsView->setPaused(false);
-        for (const auto &pauseAction : pauseActions)
-        {
-            pauseAction->setText(tr("Pause"));
-            pauseAction->setIcon(QIcon::fromTheme("media-playback-pause"));
+        toolBar->removeAction(toolBar->actions().at(index));
+        toolBarList.removeAt(index);
+        if (toolBarList.count() < MAX_TOOLBAR_COUNT) {
+            QAction *action = toolBar->actions().at(toolBarList.count());
+            action->setEnabled(true);
         }
     }
 }
 
-void MainWindow::nextFrame()
-{
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
+// show about message
+void MainWindow::about() {
+    static const char message[] =
+            "<p><b>WeChatImages</b></p>"
 
-    graphicsView->jumpToNextFrame();
+            "<p>Version:&nbsp;0.1(x64)</p>"
+            "<p>Author:&nbsp;&nbsp;shrill</p>"
+            "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022/03/07</p>"
+
+            "<p></p>"
+//        "<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
+//        "<p>Video:&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.bilibili.com/video/BV1ng411L7gx\">BiliBili video</a>"
+    ;
+
+//    QMessageBox::about(this, tr("About"), message);
+    auto *msgBox = new QMessageBox(this);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->setWindowTitle(tr("About"));
+    msgBox->setText(message);
+    QPixmap pm(QLatin1String(":/resources/icon_app_64.png"));
+    if (!pm.isNull())
+        msgBox->setIconPixmap(pm);
+
+    msgBox->exec();
 }
 
-void MainWindow::toggleSlideshow()
-{
-    const auto slideshowActions = qvApp->getActionManager().getAllClonesOfAction("slideshow", this);
-
-    if (slideshowTimer->isActive())
-    {
-        slideshowTimer->stop();
-        for (const auto &slideshowAction : slideshowActions)
-        {
-            slideshowAction->setText(tr("Start S&lideshow"));
-            slideshowAction->setIcon(QIcon::fromTheme("media-playback-start"));
-        }
+void MainWindow::loadWindowInfo() {
+    QVariant geometry = ConfigIni::getInstance().iniRead(CONFIG_GROUP_WINDOW, CONFIG_WIN_GEOMETRY);
+//    qDebug() << geometry;
+    if (geometry.isValid()) {
+        bool result = restoreGeometry(geometry.toByteArray());
+        qDebug() << QString("restoreGeometry result %1").arg(result);
+    } else {
+        // resize window
+        QSize aSize = qGuiApp->primaryScreen()->availableSize();
+        qDebug() << aSize;
+        resize(aSize * 0.618);
     }
-    else
-    {
-        slideshowTimer->start();
-        for (const auto &slideshowAction : slideshowActions)
-        {
-            slideshowAction->setText(tr("Stop S&lideshow"));
-            slideshowAction->setIcon(QIcon::fromTheme("media-playback-stop"));
-        }
+    QVariant state = ConfigIni::getInstance().iniRead(CONFIG_GROUP_WINDOW, CONFIG_WIN_STATE);
+//    qDebug() << state;
+    if (state.isValid()) {
+        bool result = restoreState(state.toByteArray());
+        qDebug() << QString("restoreState result %1").arg(result);
     }
-}
 
-void MainWindow::cancelSlideshow()
-{
-    if (slideshowTimer->isActive())
-        toggleSlideshow();
-}
+//    QVariant size = readSettings(CONFIG_GROUP_WINDOW, CONFIG_WIN_SIZE);
+//    qDebug() << size;
+//    if (size.isValid()) {
+//        resize(size.toSize());
+//    } else {
+//        // resize window
+//        QSize aSize = qGuiApp->primaryScreen()->availableSize();
+//        qDebug() << aSize;
+//        resize(aSize * 0.618);
+//    }
 
-void MainWindow::slideshowAction()
-{
-    if (qvApp->getSettingsManager().getBoolean("slideshowreversed"))
-        previousFile();
-    else
-        nextFile();
-}
+//    QVariant pos = readSettings(CONFIG_GROUP_WINDOW, CONFIG_WIN_POS);
+//    qDebug() << pos;
+//    if (pos.isValid()) {
+//        move(pos.toPoint());
+//    }
 
-void MainWindow::decreaseSpeed()
-{
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
+    QStringList pathList;// = readArraySettings(CONFIG_GROUP_TOOLBAR);
+    qDebug() << "pathList: " << pathList;
+    if (pathList.isEmpty()) {
+                foreach (QFileInfo info, QDir::drives()) {
+                QString path = info.absolutePath();     // example "C:/", file's path absolute path. This doesn't include the file name
+                path = QDir::toNativeSeparators(path);  // example "C:\\"
+                toolBar->addAction(fileModel->iconProvider()->icon(info), path);
 
-    graphicsView->setSpeed(graphicsView->getLoadedMovie().speed()-25);
-}
+                toolBarList.append(path);
+            }
+    } else {
+                foreach (QString path, pathList) {
+                path = QDir::toNativeSeparators(path);
+//            toolBar->addAction(fileModel->iconProvider()->icon(QFileInfo(path)), path);
 
-void MainWindow::resetSpeed()
-{
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
+                QFileInfo info(path);
+                QString text = QDir::toNativeSeparators(info.fileName().isEmpty() ? path : info.fileName());
+                QAction *newAct = new QAction;
+                newAct->setIcon(fileModel->iconProvider()->icon(info));
+                newAct->setText(text);
+                newAct->setToolTip(path);
+                toolBar->addAction(newAct);
 
-    graphicsView->setSpeed(100);
-}
-
-void MainWindow::increaseSpeed()
-{
-    if (!getCurrentFileDetails().isMovieLoaded)
-        return;
-
-    graphicsView->setSpeed(graphicsView->getLoadedMovie().speed()+25);
-}
-
-void MainWindow::toggleFullScreen()
-{
-    if (windowState() == Qt::WindowFullScreen)
-    {
-        setWindowState(storedWindowState);
-        setWindowSize();
+                toolBarList.append(path);
+            }
     }
-    else
-    {
-        storedWindowState = windowState();
-        showFullScreen();
-    }
+//    toolBar->addSeparator();
+    toolBar->addAction("+");
 }
+
+void MainWindow::saveWindowInfo() {
+    navDock->saveDockInfo();
+}
+
