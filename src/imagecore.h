@@ -12,7 +12,7 @@
 #include <QOpenGLContext>
 
 
-class QVImageCore : public QObject
+class ImageCore : public QObject
 {
     Q_OBJECT
 
@@ -36,7 +36,7 @@ public:
         QSize size;
     };
 
-    explicit QVImageCore(QObject *parent = nullptr);
+    explicit ImageCore(QObject *parent = nullptr);
 
     void loadFile(const QString &fileName);
     ReadData readFile(const QString &fileName, bool forCache);
@@ -74,6 +74,8 @@ signals:
 
     void fileChanged();
 
+    void fileDataChanged(const QPixmap &readData);
+
     void readError(int errorNum, const QString &errorString, const QString &fileName);
 
 private:
@@ -99,7 +101,7 @@ private:
 
     bool waitingOnLoad;
 
-    QString datConverImage(const QString &datFileName, const QString &imageFileName);
+    BYTE* datConverImage(const QString &datFileName, long long fileSize);
 
     void XOR(BYTE* v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR);
 };

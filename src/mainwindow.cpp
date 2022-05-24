@@ -26,8 +26,10 @@ MainWindow::MainWindow(QWidget *parent)
         : QMainWindow(parent) {
     setWindowTitle(tr("WeChatImages"));
 
+    this->imageCore = new ImageCore();
+
     fileModel = new FileSystemModel();
-    navDock = new NavDockWidget(fileModel);
+    navDock = new NavDockWidget(fileModel, imageCore);
 
     cutShortcut = new QShortcut(this);
     copyShortcut = new QShortcut(this);
@@ -59,6 +61,7 @@ MainWindow::~MainWindow() {
 
     navDock->deleteLater();
     fileModel->deleteLater();
+    delete this->imageCore;
 }
 
 
@@ -74,12 +77,13 @@ void MainWindow::fileModelInit() {
      * add QDir::Hidden will show some files that not visible on Windows, these files may be modified by mistake.
      */
     fileModel->setFilter(QDir::AllEntries | QDir::NoDot | QDir::AllDirs | QDir::System/* | QDir::Hidden*/);
+    fileModel->setNameFilters(QStringList() << "*.jpg" << "*.gif" << "*.png" << "*.dat");
     fileModel->setReadOnly(true);
 }
 
 void MainWindow::setupWidgets() {
     // central widget
-    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, fileModel, this);
+    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, fileModel, this->imageCore, this);
     connectShortcut(widget);
     setCentralWidget(widget);
 

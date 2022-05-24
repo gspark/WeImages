@@ -7,25 +7,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "add a postfix, usually d on windows")
 set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windows")
 
-SET(CMAKE_BUILD_TYPE Release)
+#SET(CMAKE_BUILD_TYPE Release)
 #SET(CMAKE_BUILD_TYPE Debug)
 
 if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
     add_definitions(-D_DEBUG)
-    set(QT_STATIC_PATH "d:/ops/qt-6.2.2-mingw64/static/debug")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
+    ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    ## SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 else ()
     message("build type: " "Release")
-    set(QT_STATIC_PATH "d:/ops/qt-6.2.2-mingw64/static/release")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
 endif ()
 
 list(APPEND CMAKE_PREFIX_PATH ${QT_STATIC_PATH})
 
 #定义变量
-set(PREBUILT_LIB_DIRECTORY D:/ops/msys64/mingw64/lib)
-
+## set(PREBUILT_LIB_DIRECTORY D:/ops/msys64/mingw64/lib)
 
 include_directories(${QT_STATIC_PATH}/include
         ${QT_STATIC_PATH}/include/QtCore
@@ -34,7 +33,6 @@ include_directories(${QT_STATIC_PATH}/include
 
 set_target_properties(${TARGET_NAME} PROPERTIES DEBUG_POSTFIX "d")
 set_target_properties(${TARGET_NAME} PROPERTIES RELEASE_POSTFIX "")
-
 
 # 设置自动生成moc文件
 set(CMAKE_AUTOMOC ON)
@@ -48,6 +46,8 @@ find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
 
 add_definitions(-DVERSION)
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 file(GLOB_RECURSE all_src_file
         src/*.cpp src/*.hpp src/*.c src/*.h src/*.ui
@@ -78,6 +78,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt::Widgets
         )
 
+set(ZLIB_INCLUDE_DIR "d:/ops/zlib/include")
+set(ZLIB_LIBRARY "d:/ops/zlib/lib/zlibstatic.lib")
 find_package(ZLIB REQUIRED)
 if (ZLIB_FOUND AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Release"))
     message(STATUS "zlib lib = ${ZLIB_LIBRARIES}")

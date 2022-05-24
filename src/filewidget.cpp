@@ -17,8 +17,9 @@
 #include <QUrl>
 
 
-FileWidget::FileWidget(const QString &tag, QAbstractItemModel *model, QWidget *parent) : QWidget(parent) {
+FileWidget::FileWidget(const QString &tag, QAbstractItemModel *model, ImageCore* imageCore, QWidget *parent) : QWidget(parent) {
     name = tag;
+    this->imageCore = imageCore;
 
     // init file model
     auto *fileModel = (FileSystemModel *) model;
@@ -353,7 +354,7 @@ void FileWidget::cdPath(const QString &path) {
     if (path.isEmpty())
         return;
     updateCurrentPath(path);
-    updateRecord();
+//    updateRecord();
 }
 
 void FileWidget::updateRecord() {
@@ -586,7 +587,8 @@ void FileWidget::onTreeViewDoubleClicked(const QModelIndex &index) {
     if (info.isDir()) {
         cdPath(target);
     } else {    //    else if (info.isFile())
-        openFile(target);
+        this->imageCore->loadFile(target);
+//        openFile(target);
     }
 }
 

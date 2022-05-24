@@ -14,7 +14,7 @@
 
 class NavDockWidget;
 class FileSystemModel;
-
+class ImageCore;
 
 class MainWindow : public QMainWindow
 {
@@ -52,6 +52,8 @@ private:
 
     void loadWindowInfo();
     void saveWindowInfo();
+
+    ImageCore* imageCore;
 
 public slots:
     void about();

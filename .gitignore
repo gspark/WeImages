@@ -55,3 +55,8 @@ compile_commands.json
 
 # idea
 .idea
+
+# vs
+.vs
+CMakeSettings.json
+

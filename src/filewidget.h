@@ -19,6 +19,7 @@
 #include "filesystemmodel.h"
 #include "filefilterproxymodel.h"
 #include "treeview.h"
+#include "imagecore.h"
 
 
 #define USE_INSERT_HISTORY_MENU     1
@@ -35,12 +36,14 @@
 #define HISTORY_WIDTH_BUTTON        30
 
 
+class QVGraphicsView;
+
 class FileWidget : public QWidget {
 Q_OBJECT
 public:
     QString name;       // used to save and load settings
 
-    explicit FileWidget(const QString &tag, QAbstractItemModel *model, QWidget *parent = nullptr);
+    explicit FileWidget(const QString &tag, QAbstractItemModel *model, ImageCore *imageCore, QWidget *parent = nullptr);
 
     ~FileWidget() override;
 
@@ -168,6 +171,9 @@ private:
 
     void contextMenu(const QPoint &pos);
 
+    ImageCore *imageCore;
+
+    QVGraphicsView *graphicsView;
 
 private slots:
 

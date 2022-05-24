@@ -1,29 +1,61 @@
 #include "navdockwidget.h"
 #include "config.h"
+#include "imagecore.h"
 
 #include <QSortFilterProxyModel>
 #include <QStyleFactory>
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <QScrollArea>
 
 
-NavDockWidget::NavDockWidget(QAbstractItemModel *model)
+
+NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
 {
+    this->imageCore = imageCore;
     fileModel = (FileSystemModel *)model;
-
+    
     proxyModel = new FileFilterProxyModel;
     treeView = new TreeView;
+
+    thumbnail = new QLabel;
+    thumbnail->setBackgroundRole(QPalette::Base);
+    //thumbnail->setStyleSheet("QLabel{bkorder:1px solid rgb(0, 255, 0);}");
+    thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    thumbnail->setScaledContents(true);
+
+    //thumbnail->setFrameStyle(QFrame::WinPanel | QFrame::Raised);
+    //thumbnail->setLineWidth(3);
+    //thumbnail->setStyleSheet("QLabel {background-color:black}");
+
+    scrollArea = new QScrollArea;
+    scrollArea->setBackgroundRole(QPalette::Dark);
+    scrollArea->setWidget(thumbnail);
+    scrollArea->setVisible(false);
 
     fileModelInit();
     treeViewInit();
 
-    setWidget(treeView);
+    auto* vLayout = new QVBoxLayout(this);
+    vLayout->addWidget(treeView);
+    //vLayout->addStretch();
+    vLayout->addWidget(scrollArea);
+    auto* widget = new QWidget;
+    widget->setLayout(vLayout);
+
+    setWidget(widget);
 
     loadDockInfo();
+
+    connect(imageCore, &ImageCore::fileDataChanged, this, &NavDockWidget::fileDataChanged);
 }
 
 NavDockWidget::~NavDockWidget()
 {
     treeView->deleteLater();
     proxyModel->deleteLater();
+    thumbnail->deleteLater();
     fileModel = nullptr;
 }
 
@@ -150,5 +182,12 @@ void NavDockWidget::saveDockInfo()
 //    writeArraySettings(CONFIG_GROUP_NAV_DOCK, dirList);
 
 //    writeSettings(CONFIG_GROUP_NAV_DOCK, CONFIG_DOCK_HIDE, isHidden());
+}
+
+void NavDockWidget::fileDataChanged(const QPixmap &readData)
+{
+    this->thumbnail->setPixmap(readData);
+    this->thumbnail->adjustSize();
+    scrollArea->setVisible(true);
 }
 
