@@ -15,6 +15,7 @@
 class NavDockWidget;
 class FileSystemModel;
 class ImageCore;
+class QStatusBar;
 
 class MainWindow : public QMainWindow
 {
@@ -31,26 +32,17 @@ private:
     NavDockWidget *navDock;
     FileSystemModel *fileModel;
 
-    QShortcut *cutShortcut;
-    QShortcut *copyShortcut;
-    QShortcut *pasteShortcut;
-    QShortcut *deleteShortcut;
-    QShortcut *refreshShortcut;
-    QShortcut *expCollOneShortcut;
-    QShortcut *expCollAllShortcut;
-
     void fileModelInit();
 
     void setupToolBar();
     void setupMenuBar();
     void setupWidgets();
-    void setupShortCut();
-
     void toolBarAddAction(bool addDir = true);
 
     void connectShortcut(QWidget *widget);
 
     void loadWindowInfo();
+
     void saveWindowInfo();
 
     ImageCore* imageCore;

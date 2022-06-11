@@ -2,11 +2,11 @@
 #define FILEFILTERPROXYMODEL_H
 
 #include <QSortFilterProxyModel>
-#include <QFileSystemModel>
+#include <QStandardItemModel>
 #include <QCollator>
+#include <QFileInfo>
 
 class QFileIconProvider;
-
 
 class FileFilterProxyModel : public QSortFilterProxyModel
 {
@@ -19,7 +19,7 @@ public:
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
     // QFileSystemModel
-    QFileSystemModel *srcModel();
+    QStandardItemModel*srcModel();
     QFileIconProvider *iconProvider() const;
     QModelIndex proxyIndex(const QString &path, int column = 0) const;
     QFileInfo fileInfo(const QModelIndex &pIndex) const;
@@ -40,7 +40,9 @@ private:
     int sortColumn;
 };
 
-inline QString FileFilterProxyModel::fileName(const QModelIndex &aindex) const
-{ return aindex.data(Qt::DisplayRole).toString(); }
+inline QString FileFilterProxyModel::fileName(const QModelIndex& aindex) const
+{
+    return aindex.data(Qt::DisplayRole).toString();
+}
 
 #endif // FILEFILTERPROXYMODEL_H

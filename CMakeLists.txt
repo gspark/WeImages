@@ -53,7 +53,7 @@ file(GLOB_RECURSE all_src_file
         src/*.cpp src/*.hpp src/*.c src/*.h src/*.ui
         )
 
-#SET(RCC_FILES resources/icons/app_icon.qrc)
+SET(RCC_FILES resources/images/app.qrc)
 
 set(MY_VERSIONINFO_RC "${PROJECT_BINARY_DIR}/versionInfo.rc")
 configure_file("resources/version/versionInfo.rc.in" "${MY_VERSIONINFO_RC}")

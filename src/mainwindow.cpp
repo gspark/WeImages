@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "filewidget.h"
 #include "config.h"
+#include "filesystemmodel.h"
+#include "navdockwidget.h"
 
 #include <QtDebug>
 #include <QApplication>
@@ -18,12 +20,11 @@
 #include <QWidget>
 #include <QMenu>
 #include <QActionGroup>
-#include "filesystemmodel.h"
-#include "navdockwidget.h"
+#include <QStatusBar>
+#include <QVBoxLayout>
 
 
-MainWindow::MainWindow(QWidget *parent)
-        : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle(tr("WeChatImages"));
 
     this->imageCore = new ImageCore();
@@ -31,19 +32,10 @@ MainWindow::MainWindow(QWidget *parent)
     fileModel = new FileSystemModel();
     navDock = new NavDockWidget(fileModel, imageCore);
 
-    cutShortcut = new QShortcut(this);
-    copyShortcut = new QShortcut(this);
-    pasteShortcut = new QShortcut(this);
-    deleteShortcut = new QShortcut(this);
-    refreshShortcut = new QShortcut(this);
-    expCollOneShortcut = new QShortcut(this);
-    expCollAllShortcut = new QShortcut(this);
-
     fileModelInit();
     setupWidgets();
     setupToolBar();
     setupMenuBar();
-    setupShortCut();
 
     connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::saveWindowInfo);
 
@@ -51,13 +43,6 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-    cutShortcut->deleteLater();
-    copyShortcut->deleteLater();
-    pasteShortcut->deleteLater();
-    deleteShortcut->deleteLater();
-    refreshShortcut->deleteLater();
-    expCollOneShortcut->deleteLater();
-    expCollAllShortcut->deleteLater();
 
     navDock->deleteLater();
     fileModel->deleteLater();
@@ -82,20 +67,27 @@ void MainWindow::fileModelInit() {
 }
 
 void MainWindow::setupWidgets() {
+    statusBar()->showMessage(tr("Ready"));
+
+    //auto mainLayout = new QVBoxLayout();
+
     // central widget
-    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, fileModel, this->imageCore, this);
+    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, this->imageCore, this);
     connectShortcut(widget);
+
+    //mainLayout->addWidget(widget);
+    //mainLayout->addWidget(statusBar);
     setCentralWidget(widget);
+    //setLayout(mainLayout);
 
     // dock
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 
     // navigation dock
     navDock->setObjectName(OBJECTNAME_NAV_DOCK);
-    navDock->setWindowTitle(tr("Navigation Bar"));  // show in the dock
+    //navDock->setWindowTitle(tr("Navigation Bar"));  // show in the dock
     addDockWidget(Qt::LeftDockWidgetArea, navDock);
     connect(navDock, &NavDockWidget::navDockClicked, widget, &FileWidget::onNavigateBarClicked);
-    connect(refreshShortcut, &QShortcut::activated, navDock, &NavDockWidget::refreshTreeView);
 }
 
 void MainWindow::setupToolBar() {
@@ -105,9 +97,6 @@ void MainWindow::setupToolBar() {
 //    toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     toolBar->setIconSize(QSize(15, 20));
     toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    qDebug() << QString("toolBar default menu %1").arg(
-            toolBar->contextMenuPolicy());   // "toolBar default menu 1" Qt::DefaultContextMenu
     toolBar->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(toolBar, &QToolBar::customContextMenuRequested, this, &MainWindow::toolBarOnTextMenu);
 
@@ -145,9 +134,7 @@ void MainWindow::setupMenuBar() {
 
 //    FileWidget *widget = (FileWidget *)((QSplitter *)centralWidget())->widget(0);
     auto *widget = (FileWidget *) centralWidget();
-    QAction *addTabAct = viewMenu->addAction(tr("Add &Tab"), widget, &FileWidget::fileWidgetAddTab);
-    addTabAct->setShortcut(Qt::CTRL | Qt::Key_T);
-
+  
     auto *areaActions = new QActionGroup(this);
     areaActions->setExclusive(true);
     // help menu
@@ -158,38 +145,9 @@ void MainWindow::setupMenuBar() {
 //    aboutQtAct->setToolTip(tr("Show the Qt library's About box"));
 }
 
-void MainWindow::setupShortCut() {
-    cutShortcut->setKey(QKeySequence::Cut);
-    cutShortcut->setAutoRepeat(false);
-
-    copyShortcut->setKey(QKeySequence::Copy);
-    copyShortcut->setAutoRepeat(false);
-
-    pasteShortcut->setKey(QKeySequence::Paste);
-    pasteShortcut->setAutoRepeat(false);
-
-    deleteShortcut->setKey(QKeySequence::Delete);
-    deleteShortcut->setAutoRepeat(false);
-
-    refreshShortcut->setKey(QKeySequence::Refresh);
-    refreshShortcut->setAutoRepeat(false);
-
-    expCollOneShortcut->setKey(Qt::CTRL | Qt::Key_E);
-    expCollOneShortcut->setAutoRepeat(false);
-
-    expCollAllShortcut->setKey(Qt::CTRL | Qt::Key_R);
-    expCollAllShortcut->setAutoRepeat(false);
-}
 
 void MainWindow::connectShortcut(QWidget *widget) {
-//    qDebug() << QString("connect shortcut ") << (FileWidget *)widget;
-    connect(cutShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::cutSelectedItem);
-    connect(copyShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::copySelectedItem);
-    connect(pasteShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::pasteSelectedItem);
-    connect(deleteShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::deleteSelectedItem);
-    connect(refreshShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::refreshTreeView);
-    connect(expCollOneShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::expandCollapseOne);
-    connect(expCollAllShortcut, &QShortcut::activated, (FileWidget *) widget, &FileWidget::expandCollapseAll);
+
 }
 
 

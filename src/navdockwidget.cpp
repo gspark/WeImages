@@ -38,10 +38,11 @@ NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
     treeViewInit();
 
     auto* vLayout = new QVBoxLayout(this);
+    vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->addWidget(treeView);
     //vLayout->addStretch();
     vLayout->addWidget(scrollArea);
-    auto* widget = new QWidget;
+    auto* widget = new QWidget(this);
     widget->setLayout(vLayout);
 
     setWidget(widget);
@@ -84,12 +85,11 @@ void NavDockWidget::treeViewInit()
     treeView->sortByColumn(0, Qt::AscendingOrder);
 //    proxyModel->sort(-1, Qt::AscendingOrder);
 
-    // interactive settings
-    treeView->setEditTriggers(QAbstractItemView::SelectedClicked | QAbstractItemView::EditKeyPressed);
-    treeView->setDragEnabled(true);
-    treeView->setAcceptDrops(true);
-    treeView->setDropIndicatorShown(true);
-    treeView->setDragDropMode(QAbstractItemView::DragDrop);     // move target on FileSystemModel, not copy
+    //// interactive settings
+    //treeView->setDragEnabled(true);
+    //treeView->setAcceptDrops(true);
+    //treeView->setDropIndicatorShown(true);
+    //treeView->setDragDropMode(QAbstractItemView::DragDrop);     // move target on FileSystemModel, not copy
 
     connect(treeView, &QTreeView::expanded, this, &NavDockWidget::onExpanded);
     connect(treeView, &TreeView::treeViewGotFocus, this, &NavDockWidget::refreshTreeView);

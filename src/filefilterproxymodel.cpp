@@ -25,7 +25,7 @@ bool FileFilterProxyModel::filterAcceptsRow(int sourceRow,
         return true;
 
     QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    QStandardItemModel*model = (QStandardItemModel*)sourceModel();
     QFileInfo info = model->fileInfo(index);
 
     if (info.fileName() == "." || info.fileName() == "..") {
@@ -69,7 +69,7 @@ bool FileFilterProxyModel::nameCompare(const QModelIndex &source_left, const QMo
 
 bool FileFilterProxyModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    QStandardItemModel*model = (QStandardItemModel*)sourceModel();
     QFileInfo leftInfo = model->fileInfo(source_left);
     QFileInfo rightInfo = model->fileInfo(source_right);
 
@@ -111,7 +111,7 @@ QFileSystemModel *FileFilterProxyModel::srcModel()
 
 QFileIconProvider *FileFilterProxyModel::iconProvider() const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    QStandardItemModel*model = (QStandardItemModel*)sourceModel();
 
     return (QFileIconProvider*)model->iconProvider();
 }
@@ -119,7 +119,7 @@ QFileIconProvider *FileFilterProxyModel::iconProvider() const
 // return proxy model's index
 QModelIndex FileFilterProxyModel::proxyIndex(const QString &path, int column) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    QStandardItemModel*model = (QStandardItemModel*)sourceModel();
 
     return mapFromSource(model->index(path, column));
 }
@@ -127,7 +127,7 @@ QModelIndex FileFilterProxyModel::proxyIndex(const QString &path, int column) co
 // pIndex is proxy model's index
 QFileInfo FileFilterProxyModel::fileInfo(const QModelIndex &pIndex) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    QStandardItemModel* model = (QStandardItemModel*)sourceModel();
 
     return model->fileInfo(mapToSource(pIndex));
 }
