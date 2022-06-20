@@ -16,8 +16,6 @@
 #include <QDir>
 #include <QMimeData>
 
-#include "filesystemmodel.h"
-#include "filefilterproxymodel.h"
 #include "treeview.h"
 #include "imagecore.h"
 
@@ -35,27 +33,25 @@
 #define HISTORY_WIDTH_MENUBTN       25
 #define HISTORY_WIDTH_BUTTON        30
 
-
 class QToolBar;
 class QListView;
-
-enum FileListViewColumn {
-    NameColumn, ExtColumn, SizeColumn, DateColumn, NumberOfColumns
-};
+class FileListModel;
+class FileListSortFilterProxyModel;
+class FileSystemObject;
 
 class FileWidget : public QWidget {
-Q_OBJECT
+    Q_OBJECT
 public:
     QString name;       // used to save and load settings
 
-    explicit FileWidget(const QString &tag, ImageCore *imageCore, QWidget *parent = nullptr);
+    explicit FileWidget(const QString& tag, ImageCore* imageCore, QWidget* parent = nullptr);
 
     ~FileWidget() override;
 
     void setupToolBar();
 
 public slots:    // for shortcut
-    void onItemActivated(const QString &path);
+    void onItemActivated(const QString& path);
     void onNavigateBarClicked(const QString& path);
 
 private:
@@ -63,15 +59,12 @@ private:
 
     QToolBar* toolBar;
 
+    FileListModel* model;
     // proxy model and current dir
-    FileFilterProxyModel *proxyModel;
+    FileListSortFilterProxyModel* sortModel;
 
     // pointer of current view and history, can not delete
-    QListView *listView;
-
-    QString current_path;
-
-    mutable std::recursive_mutex _fileListAndCurrentDirMutex;
+    QListView* listView;
 
     // widget init
     void initListView();
@@ -84,13 +77,11 @@ private:
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
-    void fillFromList(const QList<QFileInfo>& items);
-
-    QList<QFileInfo> setItems(const QString& currentDirPath);
-
+    void fillFromList(const std::map<qulonglong, FileSystemObject> items);
+ 
 private slots:
     // tree view
-    void onTreeViewClicked(const QModelIndex &index);
+    void onTreeViewClicked(const QModelIndex& index);
 
     //void onTreeViewDoubleClicked(const QModelIndex &index);
 

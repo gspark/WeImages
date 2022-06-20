@@ -13,7 +13,7 @@
 #define OBJECTNAME_TOOLBAR          "Quick Button"
 
 class NavDockWidget;
-class FileSystemModel;
+class QFileSystemModel;
 class ImageCore;
 class QStatusBar;
 
@@ -30,7 +30,7 @@ private:
     QStringList toolBarList;
 
     NavDockWidget *navDock;
-    FileSystemModel *fileModel;
+    QFileSystemModel *fileModel;
 
     void fileModelInit();
 

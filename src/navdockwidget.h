@@ -2,25 +2,22 @@
 #define NAVDOCKWIDGET_H
 
 #include <QDockWidget>
-
-#include <QFileSystemModel>
 #include <QHeaderView>
 #include <QTreeView>
 
-#include "filesystemmodel.h"
-#include "filefilterproxymodel.h"
 #include "treeview.h"
-
 
 class QLabel;
 class ImageCore;
 class QScrollArea;
+class QFileSystemModel;
+class FileFilterProxyModel;
 
 class NavDockWidget : public QDockWidget
 {
     Q_OBJECT
 public:
-    NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore);
+    NavDockWidget(QAbstractItemModel* model, ImageCore* imageCore);
     ~NavDockWidget();
 
     virtual QSize sizeHint() const;
@@ -30,21 +27,21 @@ public:
     void saveDockInfo();
 
 private:
-    FileSystemModel *fileModel;     // can not delete here
-    FileFilterProxyModel *proxyModel;
-    TreeView *treeView;
+    QFileSystemModel* fileModel;     // can not delete here
+    FileFilterProxyModel* proxyModel;
+    TreeView* treeView;
     QLabel* thumbnail;
 
     void fileModelInit();
     void treeViewInit();
 
-    ImageCore *imageCore;
+    ImageCore* imageCore;
     QScrollArea* scrollArea;
 
 private slots:
-    void onExpanded(const QModelIndex &index);
-    void onTreeViewClicked(const QModelIndex &index);
-    void fileDataChanged(const QPixmap &readData);
+    void onExpanded(const QModelIndex& index);
+    void onTreeViewClicked(const QModelIndex& index);
+    void fileDataChanged(const QPixmap& readData);
 
 signals:
     void navDockClicked(const QString path);

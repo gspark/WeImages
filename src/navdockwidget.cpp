@@ -1,6 +1,7 @@
 #include "navdockwidget.h"
 #include "config.h"
 #include "imagecore.h"
+#include "filelistmodel/filefilterproxymodel.h"
 
 #include <QSortFilterProxyModel>
 #include <QStyleFactory>
@@ -14,7 +15,7 @@
 NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
 {
     this->imageCore = imageCore;
-    fileModel = (FileSystemModel *)model;
+    fileModel = (QFileSystemModel*)model;
     
     proxyModel = new FileFilterProxyModel;
     treeView = new TreeView;
@@ -120,7 +121,7 @@ void NavDockWidget::onExpanded(const QModelIndex &index)
     QString path = proxyModel->fileInfo(index).absoluteFilePath();
 //    qDebug() << QString("dock onExpanded %1").arg(path);
 
-    ((FileSystemModel *)proxyModel->srcModel())->refreshDir(path);
+    //((QFileSystemModel *)proxyModel->srcModel())->refreshDir(path);
 }
 
 void NavDockWidget::refreshTreeView()

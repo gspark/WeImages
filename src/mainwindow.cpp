@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "filewidget.h"
 #include "config.h"
-#include "filesystemmodel.h"
 #include "navdockwidget.h"
 
 #include <QtDebug>
@@ -29,7 +28,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     this->imageCore = new ImageCore();
 
-    fileModel = new FileSystemModel();
+    fileModel = new QFileSystemModel();
     navDock = new NavDockWidget(fileModel, imageCore);
 
     fileModelInit();
