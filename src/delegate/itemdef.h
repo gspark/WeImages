@@ -3,17 +3,13 @@
 
 #include <QMetaType>
 
-typedef enum{
-    S_RED,
-    S_BLUE,
-    S_YELLOW,
-} ItemStatus;
 
 struct ItemData{
-    QString name;
-    QString tel;
+    QString fullName;
+    QString fullAbsolutePath;
+    QString extension;
 };
 
-Q_DECLARE_METATYPE(ItemData)
+Q_DECLARE_METATYPE(ItemData);
 
 #endif // ITEMDEF_H

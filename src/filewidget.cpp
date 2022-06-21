@@ -94,7 +94,7 @@ void FileWidget::initTabelView()
     // view settings
     //listView->setStyle(QStyleFactory::create("Fusion"));
 
-    connect(listView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
+    //connect(listView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
 
     connect(listView, &QListView::clicked, this, &FileWidget::onTreeViewClicked);
     //connect(listView, &QListView::doubleClicked, this, &FileWidget::onTreeViewDoubleClicked);
@@ -106,7 +106,7 @@ void FileWidget::initThumbnailView()
     {
         return;
     }
-    m_delegate = new ItemDelegate(this);
+    m_delegate = new ItemDelegate(this->imageCore, this);
 
     //m_proxyModel = new QSortFilterProxyModel(ui->listView);
     //m_proxyModel->setSourceModel(m_model);
@@ -116,11 +116,17 @@ void FileWidget::initThumbnailView()
     //ui->listView->setViewMode(QListView::IconMode); //设置Item图标显示
     //ui->listView->setDragEnabled(false);            //控件不允许拖动
 
-    thumbnailView = new QListView;
+    thumbnailView = new QListView(this);
     thumbnailView->setContentsMargins(0, 0, 0, 0);
-    thumbnailView->setItemDelegate(m_delegate);       //为视图设置委托
-    thumbnailView->setSpacing(15);                   //为视图设置控件间距
+    thumbnailView->setStyleSheet("background-color: transparent;border:1px solid #EFEFEF;");
+    //为视图设置委托
+    thumbnailView->setItemDelegate(m_delegate);
+    //为视图设置控件间距
+    thumbnailView->setSpacing(15);
     thumbnailView->setViewMode(QListView::IconMode);
+    thumbnailView->setIconSize(QSize(210, 210));
+    thumbnailView->setResizeMode(QListView::Adjust);
+    thumbnailView->setMovement(QListView::Static);
 }
 
 void FileWidget::initWidgetLayout() {
@@ -169,7 +175,8 @@ void FileWidget::fillFromList(const std::map<qulonglong, FileSystemObject> items
         }
         setListView(items, data);
         stackedWidget->setCurrentIndex(0);
-    } else if (FileViewType::thumbnail == fileViewType)
+    }
+    else if (FileViewType::thumbnail == fileViewType)
     {
         setThumbnailView(items, data);
         stackedWidget->setCurrentIndex(1);
@@ -188,7 +195,7 @@ int FileWidget::setListView(const std::map<qulonglong, FileSystemObject> items, 
     };
 
     std::vector<TreeViewItem> qTreeViewItems;
-    qTreeViewItems.reserve(items.size()* NumberOfColumns);
+    qTreeViewItems.reserve(items.size() * NumberOfColumns);
 
     int itemRow = 0;
 
@@ -257,42 +264,23 @@ int FileWidget::setListView(const std::map<qulonglong, FileSystemObject> items, 
 
 int FileWidget::setThumbnailView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data)
 {
-    int totalNum = items.size();
-    int redNum = 0;
-    int blueNum = 0;
-    int yellowNum = 0;
+    for (const auto& item : items) {
+        const FileSystemObject& object = item.second;
 
-    
-    for (int i = 0; i < totalNum; ++i) {
-        QStandardItem* Item = new QStandardItem;
+        QStandardItem* thumbnailItem = new QStandardItem;
 
         ItemData itemData;
+ 
+        itemData.fullName = object.fullName();
+        itemData.fullAbsolutePath = object.fullAbsolutePath();
+        itemData.extension = object.extension();
 
-        itemData.name = QString("Name %1").arg(i);
-        itemData.tel = QString("TEL:1331234567%1").arg(i);
-        int randNum = rand() % 3;
-        ItemStatus itemStatus;
-        switch (randNum) {
-        case 0:
-            itemStatus = S_RED;
-            redNum++;
-            break;
-        case 1:
-            itemStatus = S_BLUE;
-            blueNum++;
-            break;
-        case 2:
-            itemStatus = S_YELLOW;
-            yellowNum++;
-            break;
-        }
-        Item->setData(itemStatus, Qt::UserRole);  // 单一存取
-        Item->setData(QVariant::fromValue(itemData), Qt::UserRole + 1);//整体存取
+        thumbnailItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);//整体存取
 
-        data->appendRow(Item);      //追加Item
+        data->appendRow(thumbnailItem);      //追加Item
     }
     thumbnailView->setModel(data);
-    return totalNum;
+    return items.size();
 }
 
 void FileWidget::thumbnail()

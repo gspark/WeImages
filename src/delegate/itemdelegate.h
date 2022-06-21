@@ -4,13 +4,15 @@
 #include <QModelIndex>
 #include <QStandardItemModel>
 
+class ImageCore;
+
 class ItemDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 signals:
 
 public:
-    explicit ItemDelegate(QObject *parent = 0);
+    explicit ItemDelegate(ImageCore* imageCore, QObject *parent = 0);
     ~ItemDelegate();
 
     //重写重画函数
@@ -18,7 +20,7 @@ public:
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const;
 
 private:
-
+    ImageCore* imageCore;
 };
 
 #endif // ITEMDELEGATE_H
