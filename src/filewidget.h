@@ -35,9 +35,19 @@
 
 class QToolBar;
 class QListView;
+class QTableView;
 class FileListModel;
 class FileListSortFilterProxyModel;
 class FileSystemObject;
+class ItemDelegate;
+class QStandardItemModel;
+class QVBoxLayout;
+class QAbstractItemDelegate;
+class QStackedWidget;
+
+enum FileViewType {
+    List, thumbnail
+};
 
 class FileWidget : public QWidget {
     Q_OBJECT
@@ -63,11 +73,23 @@ private:
     // proxy model and current dir
     FileListSortFilterProxyModel* sortModel;
 
+    QStackedWidget* stackedWidget;
+
     // pointer of current view and history, can not delete
-    QListView* listView;
+    QTableView* listView;
+
+    QListView* thumbnailView;
+
+    ItemDelegate* m_delegate;                 //委托
+
+    QAbstractItemDelegate* list_delegate;
 
     // widget init
     void initListView();
+
+    void initTabelView();
+
+    void initThumbnailView();
 
     void initWidgetLayout();
 
@@ -78,6 +100,12 @@ private:
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
     void fillFromList(const std::map<qulonglong, FileSystemObject> items);
+
+    int setListView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data);
+
+    int setThumbnailView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data);
+
+    FileViewType fileViewType;
  
 private slots:
     // tree view
