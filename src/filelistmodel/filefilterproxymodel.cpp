@@ -120,7 +120,7 @@ QFileIconProvider *FileFilterProxyModel::iconProvider() const
 QModelIndex FileFilterProxyModel::proxyIndex(const QString &path, int column) const
 {
     QFileSystemModel *model = (QFileSystemModel *)sourceModel();
-
+    model->setRootPath(path);
     return mapFromSource(model->index(path, column));
 }
 

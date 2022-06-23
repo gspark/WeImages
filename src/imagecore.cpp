@@ -87,37 +87,47 @@ void ImageCore::loadFile(const QString &fileName)
 
 
     //check if cached already before loading the long way
-//    auto previouslyRecordedFileSize = qvApp->getPreviouslyRecordedFileSize(sanitaryFileName);
-//    auto *cachedPixmap = new QPixmap();
-//    if (QPixmapCache::find(sanitaryFileName, cachedPixmap) &&
-//        !cachedPixmap->isNull() &&
-//        previouslyRecordedFileSize == fileInfo.size())
-//    {
-//        QSize previouslyRecordedImageSize = qvApp->getPreviouslyRecordedImageSize(sanitaryFileName);
-//        ReadData readData = {
-//            matchCurrentRotation(*cachedPixmap),
-//            fileInfo,
-//            previouslyRecordedImageSize
-//        };
-//        loadPixmap(readData, true);
-//    }
-//    else
-//    {
+    //auto previouslyRecordedFileSize = qvApp->getPreviouslyRecordedFileSize(sanitaryFileName);
+    auto *cachedPixmap = new QPixmap();
+    if (QPixmapCache::find(sanitaryFileName, cachedPixmap) &&
+        !cachedPixmap->isNull())
+    {
+        ReadData readData = {
+            matchCurrentRotation(*cachedPixmap),
+            fileInfo,
+            cachedPixmap->size()
+        };
+        loadPixmap(readData, true);
+    }
+    else
+    {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         loadFutureWatcher.setFuture(QtConcurrent::run(this, &ImageCore::readFile, sanitaryFileName, false));
 #else
         loadFutureWatcher.setFuture(QtConcurrent::run(&ImageCore::readFile, this, sanitaryFileName, false));
 #endif
-//    }
-//    delete cachedPixmap;
+    }
+    delete cachedPixmap;
 }
 
 ImageCore::ReadData ImageCore::readFile(const QString &fileName, bool forCache)
 {
+    QFileInfo fileInfo(fileName);
+    auto* cachedPixmap = new QPixmap();
+    if (QPixmapCache::find(fileName, cachedPixmap) && !cachedPixmap->isNull())
+    {
+        ReadData readData = {
+            matchCurrentRotation(*cachedPixmap),
+            fileInfo,
+            cachedPixmap->size()
+        };
+        loadPixmap(readData, true);
+        return readData;
+    }
+
     QPixmap readPixmap;
     QSize size;
 
-    QFileInfo fileInfo(fileName);
     QString imageFileName(fileName);
 
     if (fileInfo.suffix() == "dat") {
@@ -163,7 +173,10 @@ ImageCore::ReadData ImageCore::readFile(const QString &fileName, bool forCache)
         QFileInfo(imageFileName),
         size,
     };
-
+    if (forCache)
+    {
+        addToCache(readData);
+    }
     return readData;
 }
 
@@ -171,7 +184,7 @@ void ImageCore::loadPixmap(const ReadData &readData, bool fromCache)
 {
     // Do this first so we can keep folder info even when loading errored files
     currentFileDetails.fileInfo = readData.fileInfo;
-    updateFolderInfo();
+    //updateFolderInfo();
 
     // Reset mechanism to avoid stalling while loading
     waitingOnLoad = false;

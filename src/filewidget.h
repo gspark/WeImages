@@ -4,9 +4,6 @@
 #include <QWidget>
 
 #include <QSortFilterProxyModel>
-#include <QFileSystemWatcher>
-#include <QFileSystemModel>
-#include <QHeaderView>
 #include <QTabWidget>
 #include <QTreeView>
 #include <QPushButton>
@@ -79,8 +76,6 @@ private:
     void updateCurrentPath(const QString& dir);
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
-
-    int setThumbnailView(QFileSystemModel* fileModel);
 
     FileViewType fileViewType;
  

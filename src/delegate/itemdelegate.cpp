@@ -9,14 +9,19 @@
 #include <QPainterPath>
 #include <QApplication>
 #include <QFileSystemModel>
-#include "itemdef.h"
+#include <QFileInfo>
+#include <QFileIconProvider>
+
+#include "../filelistmodel/filefilterproxymodel.h"
 #include "../imagecore.h"
 #include "../config.h"
 #include "../logger/Logger.h"
 
-ItemDelegate::ItemDelegate(QObject* parent) :
+
+ItemDelegate::ItemDelegate(ImageCore* imageCore, QObject* parent) :
     QStyledItemDelegate(parent)
 {
+    this->imageCore = imageCore;
 }
 
 ItemDelegate::~ItemDelegate()
@@ -30,15 +35,34 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     {
         return;
     }
-    QFileSystemModel* model = (QFileSystemModel*)index.model();
+    FileFilterProxyModel* model = (FileFilterProxyModel*)index.model();
+    QFileInfo fileInfo = model->fileInfo(index);
+
+    QPixmap thumbnail;
+
+    if (fileInfo.suffix() == "png" || fileInfo.suffix() == "dat")
+    {
+        ImageCore::ReadData image = imageCore->readFile(fileInfo.filePath(), true);
+        thumbnail = image.pixmap;
+        if (thumbnail.width() > THUMBNAIL_WIDE || thumbnail.height() > THUMBNAIL_HEIGHT)
+        {
+            thumbnail = thumbnail.scaled(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT, Qt::KeepAspectRatio);
+        }
+        //itemData.thumbnail = pixmap;
+    }
+    else {
+        auto* iconProvider = (QFileIconProvider*)model->iconProvider();
+        auto icon = iconProvider->icon(fileInfo);
+        thumbnail = icon.pixmap(48, 48);
+    }
 
     painter->save();
-    QVariant variant = index.data(Qt::UserRole + 3);
-    if (variant.isNull())
-    {
-        return;
-    }
-    ItemData data = variant.value<ItemData>();
+    //QVariant variant = index.data(Qt::UserRole + 3);
+    //if (variant.isNull())
+    //{
+    //    return;
+    //}
+    //ItemData data = variant.value<ItemData>();
 
     // 用来在视图中画一个item
     QStyleOptionViewItem viewOption(option);
@@ -111,21 +135,21 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     }
 
     // 绘制缩略图
-    LOG_INFO << "thumbnail.width " << data.thumbnail.width() << " thumbnail.height " << data.thumbnail.height();
+    //LOG_INFO << "thumbnail.width " << thumbnail.width() << " thumbnail.height " << thumbnail.height();
     QRect pixmapRect = QRect(
-        rect.left() + (rect.width() - data.thumbnail.width()) / 2,
-        rect.top() + (rect.height() - 50 - data.thumbnail.height() ) / 2, 
-        data.thumbnail.width(),
-        data.thumbnail.height());
-    painter->drawPixmap(pixmapRect, data.thumbnail);
-    LOG_INFO << "pixmapRect.left " << pixmapRect.left() << " pixmapRect.top " << pixmapRect.top();
+        rect.left() + (rect.width() - thumbnail.width()) / 2,
+        rect.top() + (rect.height() - 50 - thumbnail.height() ) / 2, 
+        thumbnail.width(),
+        thumbnail.height());
+    painter->drawPixmap(pixmapRect, thumbnail);
+    //LOG_INFO << "pixmapRect.left " << pixmapRect.left() << " pixmapRect.top " << pixmapRect.top();
 
     //绘制名字
     QRect NameRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 30, 20);
     painter->setPen(QPen(Qt::black));
-    painter->setFont(QFont("Times", 12, QFont::Bold));
-    painter->drawText(NameRect, Qt::AlignLeft, data.fullName);
-    LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
+    painter->setFont(QFont("Fixedsys", 12));
+    painter->drawText(NameRect, Qt::AlignLeft, fileInfo.fileName());
+    //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
     painter->restore();
 }
 

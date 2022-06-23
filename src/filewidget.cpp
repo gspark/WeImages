@@ -43,7 +43,7 @@ FileWidget::FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget*
  
     this->imageCore = imageCore;
 
-    fileViewType = ::FileViewType::List;
+    this->fileViewType = ::FileViewType::List;
 
     // init file model
     auto* fileModel = (QFileSystemModel*)model;
@@ -115,7 +115,7 @@ void FileWidget::initThumbnailView()
     {
         return;
     }
-    m_delegate = new ItemDelegate(this);
+    m_delegate = new ItemDelegate(this->imageCore, this);
 
     //m_proxyModel = new QSortFilterProxyModel(ui->listView);
     //m_proxyModel->setSourceModel(m_model);
@@ -132,7 +132,7 @@ void FileWidget::initThumbnailView()
     thumbnailView->setItemDelegate(m_delegate);
     //为视图设置控件间距
     thumbnailView->setSpacing(1);
-    //thumbnailView->setViewMode(QListView::IconMode);
+    thumbnailView->setViewMode(QListView::IconMode);
  /*   thumbnailView->setIconSize(QSize(210, 210));*/
     thumbnailView->setResizeMode(QListView::Adjust);
     thumbnailView->setMovement(QListView::Static);
@@ -171,10 +171,11 @@ void FileWidget::updateCurrentPath(const QString& dir)
     }
     else if (FileViewType::thumbnail == fileViewType)
     {
-        QFileSystemModel* data = (QFileSystemModel*)this->proxyModel->srcModel();
+        //QFileSystemModel* data = (QFileSystemModel*)this->proxyModel->srcModel();
         //data->setRootPath(dir);
         thumbnailView->setUpdatesEnabled(false);
-        setThumbnailView(data);
+        thumbnailView->setRootIndex(index);
+        //setThumbnailView(data);
         thumbnailView->setUpdatesEnabled(true);
         stackedWidget->setCurrentIndex(1);
     }
@@ -184,63 +185,13 @@ void FileWidget::onSelectionChanged(const QItemSelection& selected, const QItemS
 
 }
 
-
-int FileWidget::setThumbnailView(QFileSystemModel* fileModel)
-{
-    return 1;
-    //QModelIndex root = fileModel->index(0, 0);
-    //
-    //while (fileModel->canFetchMore(root))
-    //{
-
-    //    root = fileModel->fe
-    //}
-
-    //data->rowCount()
-
-    //for (const auto& item : items) {
-    //    const FileSystemObject& object = item.second;
-
-    //    QStandardItem* thumbnailItem = new QStandardItem;
-    //    thumbnailItem->setCheckable(true);
-    //    thumbnailItem->setCheckState(Qt::CheckState::Unchecked);
-
-    //    QPixmap readPixmap;
-
-    //    if (object.extension() == "png" || object.extension() == "dat")
-    //    {
-    //        ImageCore::ReadData image = imageCore->readFile(object.fullAbsolutePath(), false);
-    //        readPixmap = image.pixmap;
-    //        if (readPixmap.width() > THUMBNAIL_WIDE || readPixmap.height() > THUMBNAIL_HEIGHT)
-    //        {
-    //            readPixmap = readPixmap.scaled(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT, Qt::KeepAspectRatio);
-    //        }
-    //        //itemData.thumbnail = pixmap;
-    //    }
-    //    else {
-    //        auto icon = iconFor(object, true);
-    //        readPixmap = icon.pixmap(128, 128);
-    //    }
-
-    //    ItemData itemData = {
-    //        object.fullName(),
-    //        object.fullAbsolutePath(),
-    //        object.extension(),
-    //        readPixmap,
-    //    };
-
-    //    //整体存取, Qt::UserRole + 1 delegate拿不到数据，改成 Qt::UserRole + 3
-    //    thumbnailItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);
-
-    //    data->appendRow(thumbnailItem);
-    //}
-    //thumbnailView->setModel(data);
-    //return items.size();
-}
-
 void FileWidget::thumbnail()
 {
-    this->fileViewType = FileViewType::thumbnail;
+    if (this->fileViewType != FileViewType::thumbnail)
+    {
+        this->fileViewType = FileViewType::thumbnail;
+        updateCurrentPath(proxyModel->srcModel()->rootPath());
+    }
     //QAbstractItemModel *data = this->proxyModel->sourceModel();
 
     //this->thumbnailView->setViewMode(QListView::IconMode);
@@ -249,13 +200,16 @@ void FileWidget::thumbnail()
     //this->listView->viewport()->setAttribute(Qt::WA_StaticContents);
     //this->listView->setAttribute(Qt::WA_MacShowFocusRect, false);
     //setThumbnailView(this->proxyModel->sourceModel());
-    stackedWidget->setCurrentIndex(1);
+    
 }
 
 void FileWidget::detail()
 {
-    this->fileViewType = FileViewType::List;
-    stackedWidget->setCurrentIndex(0);
+    if (this->fileViewType != FileViewType::List)
+    {
+        this->fileViewType = FileViewType::List;
+        updateCurrentPath(proxyModel->srcModel()->rootPath());
+    }
 }
 
 void FileWidget::onTreeViewClicked(const QModelIndex& index) {

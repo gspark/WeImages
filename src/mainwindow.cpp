@@ -21,6 +21,7 @@
 #include <QActionGroup>
 #include <QStatusBar>
 #include <QVBoxLayout>
+#include <QFileSystemModel>
 
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
