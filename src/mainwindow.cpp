@@ -71,7 +71,7 @@ void MainWindow::setupWidgets() {
     //auto mainLayout = new QVBoxLayout();
 
     // central widget
-    auto *widget = new FileWidget(CONFIG_GROUP_MAIN_WIN, this->imageCore, this);
+    auto *widget = new FileWidget(this->fileModel, this->imageCore, this);
     connectShortcut(widget);
 
     //mainLayout->addWidget(widget);

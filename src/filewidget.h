@@ -19,31 +19,16 @@
 #include "treeview.h"
 #include "imagecore.h"
 
-
-#define USE_INSERT_HISTORY_MENU     1
-#define MAX_HISTORY_COUNT           20
-#define MAX_TAB_COUNT               10
-
-#define HEADER_SIZE_DEFAULT         125
-#define HEADER_SIZE_NAME            300
-#define HEADER_SIZE_MODIFIED        150
-
-#define STATUS_LAB_WIDTH_ITEM       100
-
-#define HISTORY_WIDTH_MENUBTN       25
-#define HISTORY_WIDTH_BUTTON        30
-
 class QToolBar;
 class QListView;
 class QTableView;
-class FileListModel;
-class FileListSortFilterProxyModel;
-class FileSystemObject;
 class ItemDelegate;
 class QStandardItemModel;
 class QVBoxLayout;
 class QAbstractItemDelegate;
 class QStackedWidget;
+class FileFilterProxyModel;
+class QAbstractItemModel;
 
 enum FileViewType {
     List, thumbnail
@@ -52,9 +37,8 @@ enum FileViewType {
 class FileWidget : public QWidget {
     Q_OBJECT
 public:
-    QString name;       // used to save and load settings
-
-    explicit FileWidget(const QString& tag, ImageCore* imageCore, QWidget* parent = nullptr);
+  
+    explicit FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget* parent = nullptr);
 
     ~FileWidget() override;
 
@@ -69,9 +53,7 @@ private:
 
     QToolBar* toolBar;
 
-    FileListModel* model;
-    // proxy model and current dir
-    FileListSortFilterProxyModel* sortModel;
+    FileFilterProxyModel* proxyModel;
 
     QStackedWidget* stackedWidget;
 
@@ -80,14 +62,13 @@ private:
 
     QListView* thumbnailView;
 
-    ItemDelegate* m_delegate;                 //委托
-
-    QAbstractItemDelegate* list_delegate;
+    // 委托
+    ItemDelegate* m_delegate;
 
     // widget init
     void initListView();
 
-    void initTabelView();
+    void initTableView();
 
     void initThumbnailView();
 
@@ -99,11 +80,7 @@ private:
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
-    void fillFromList(const std::map<qulonglong, FileSystemObject> items);
-
-    int setListView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data);
-
-    int setThumbnailView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data);
+    int setThumbnailView(QFileSystemModel* fileModel);
 
     FileViewType fileViewType;
  

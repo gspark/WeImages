@@ -19,6 +19,9 @@
 #define CONFIG_TAB_INDEX        "index"
 #define ITEM_DEFAULT_HEIGHT     (30)
 
+#define THUMBNAIL_HEIGHT 96
+#define THUMBNAIL_WIDE 112
+
 QT_BEGIN_NAMESPACE
 class QSettings;
 

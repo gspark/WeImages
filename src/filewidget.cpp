@@ -1,10 +1,6 @@
 #include "filewidget.h"
 #include "config.h"
-#include "filelistmodel/filelistmodel.h"
-#include "filelistmodel/filelistsortfilterproxymodel.h"
-#include "panel/columns.h"
-#include "filesystemhelperfunctions.h"
-#include "util/qdatetime_helpers.hpp"
+#include "filelistmodel/filefilterproxymodel.h"
 #include "delegate/itemdelegate.h"
 #include "delegate/itemdef.h"
 
@@ -28,18 +24,32 @@
 #include <QActionGroup>
 #include <QStackedWidget>
 
+inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
+{
+    if (whatLengthInCharacters == 0)
+        whatLengthInCharacters = wcslen(what);
 
-FileWidget::FileWidget(const QString& tag, ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
-    name = tag;
+    memcpy(buffer, what, whatLengthInCharacters * sizeof(wchar_t));
+    return buffer + whatLengthInCharacters;
+}
+
+inline wchar_t* appendToString(wchar_t* buffer, const QString& what)
+{
+    const auto written = what.toWCharArray(buffer);
+    return buffer + written;
+}
+
+FileWidget::FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
+ 
     this->imageCore = imageCore;
 
-    fileViewType = FileViewType::List;
-    list_delegate = nullptr;
+    fileViewType = ::FileViewType::List;
 
     // init file model
-    model = new FileListModel;
-    sortModel = new FileListSortFilterProxyModel(this);
-    sortModel->setSourceModel(model);
+    auto* fileModel = (QFileSystemModel*)model;
+
+    proxyModel = new FileFilterProxyModel;
+    proxyModel->setSourceModel(fileModel);
 
     // widget init
     setupToolBar();
@@ -50,7 +60,7 @@ FileWidget::FileWidget(const QString& tag, ImageCore* imageCore, QWidget* parent
 }
 
 FileWidget::~FileWidget() {
-    sortModel->deleteLater();
+    proxyModel->deleteLater();
     listView = nullptr;
     thumbnailView = nullptr;
 }
@@ -73,13 +83,12 @@ void FileWidget::setupToolBar() {
     thumbnailAction->setCheckable(true);
 }
 
-
 void FileWidget::initListView() {
-    initTabelView();
+    initTableView();
     initThumbnailView();
 }
 
-void FileWidget::initTabelView()
+void FileWidget::initTableView()
 {
     if (nullptr != listView)
     {
@@ -87,7 +96,7 @@ void FileWidget::initTabelView()
     }
     listView = new QTableView;
     listView->setContentsMargins(0, 0, 0, 0);
-    //listView->setModel(sortModel);
+    listView->setModel(proxyModel);
 
     // interactive settings
     //listView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -106,7 +115,7 @@ void FileWidget::initThumbnailView()
     {
         return;
     }
-    m_delegate = new ItemDelegate(this->imageCore, this);
+    m_delegate = new ItemDelegate(this);
 
     //m_proxyModel = new QSortFilterProxyModel(ui->listView);
     //m_proxyModel->setSourceModel(m_model);
@@ -122,11 +131,12 @@ void FileWidget::initThumbnailView()
     //为视图设置委托
     thumbnailView->setItemDelegate(m_delegate);
     //为视图设置控件间距
-    thumbnailView->setSpacing(15);
-    thumbnailView->setViewMode(QListView::IconMode);
-    thumbnailView->setIconSize(QSize(210, 210));
+    thumbnailView->setSpacing(1);
+    //thumbnailView->setViewMode(QListView::IconMode);
+ /*   thumbnailView->setIconSize(QSize(210, 210));*/
     thumbnailView->setResizeMode(QListView::Adjust);
     thumbnailView->setMovement(QListView::Static);
+    thumbnailView->setModel(proxyModel);
 }
 
 void FileWidget::initWidgetLayout() {
@@ -152,135 +162,80 @@ void FileWidget::cdPath(const QString& path)
 
 void FileWidget::updateCurrentPath(const QString& dir)
 {
-    model->updateCurrentPath(dir);
-    fillFromList(model->getItems());
+    QModelIndex index = proxyModel->proxyIndex(dir);
 
+    if (FileViewType::List == fileViewType)
+    {
+        this->listView->setRootIndex(index);
+        stackedWidget->setCurrentIndex(0);
+    }
+    else if (FileViewType::thumbnail == fileViewType)
+    {
+        QFileSystemModel* data = (QFileSystemModel*)this->proxyModel->srcModel();
+        //data->setRootPath(dir);
+        thumbnailView->setUpdatesEnabled(false);
+        setThumbnailView(data);
+        thumbnailView->setUpdatesEnabled(true);
+        stackedWidget->setCurrentIndex(1);
+    }
 }
 
 void FileWidget::onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) {
 
 }
 
-void FileWidget::fillFromList(const std::map<qulonglong, FileSystemObject> items)
+
+int FileWidget::setThumbnailView(QFileSystemModel* fileModel)
 {
-    QStandardItemModel* data = (QStandardItemModel*)this->model;
-    sortModel->setSourceModel(nullptr);
-    data->clear();
+    return 1;
+    //QModelIndex root = fileModel->index(0, 0);
+    //
+    //while (fileModel->canFetchMore(root))
+    //{
 
-    if (FileViewType::List == fileViewType)
-    {
-        if (nullptr != list_delegate)
-        {
-            this->listView->setItemDelegate(list_delegate);
-        }
-        setListView(items, data);
-        stackedWidget->setCurrentIndex(0);
-    }
-    else if (FileViewType::thumbnail == fileViewType)
-    {
-        setThumbnailView(items, data);
-        stackedWidget->setCurrentIndex(1);
-    }
-}
+    //    root = fileModel->fe
+    //}
 
-int FileWidget::setListView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data)
-{
-    data->setColumnCount(NumberOfColumns);
-    data->setHorizontalHeaderLabels(QStringList{ tr("Name"), tr("Ext"), tr("Size"), tr("Date") });
+    //data->rowCount()
 
-    struct TreeViewItem {
-        const int row;
-        const FileListViewColumn column;
-        QStandardItem* const item;
-    };
+    //for (const auto& item : items) {
+    //    const FileSystemObject& object = item.second;
 
-    std::vector<TreeViewItem> qTreeViewItems;
-    qTreeViewItems.reserve(items.size() * NumberOfColumns);
+    //    QStandardItem* thumbnailItem = new QStandardItem;
+    //    thumbnailItem->setCheckable(true);
+    //    thumbnailItem->setCheckState(Qt::CheckState::Unchecked);
 
-    int itemRow = 0;
+    //    QPixmap readPixmap;
 
-    for (const auto& item : items) {
-        //auto fileNameItem = new QStandardItem();
-        //fileNameItem->setEditable(false);
-        //
-        //fileNameItem->setData(item.second.name(), Qt::DisplayRole);
-        //
-        //data->appendRow(fileNameItem);
+    //    if (object.extension() == "png" || object.extension() == "dat")
+    //    {
+    //        ImageCore::ReadData image = imageCore->readFile(object.fullAbsolutePath(), false);
+    //        readPixmap = image.pixmap;
+    //        if (readPixmap.width() > THUMBNAIL_WIDE || readPixmap.height() > THUMBNAIL_HEIGHT)
+    //        {
+    //            readPixmap = readPixmap.scaled(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT, Qt::KeepAspectRatio);
+    //        }
+    //        //itemData.thumbnail = pixmap;
+    //    }
+    //    else {
+    //        auto icon = iconFor(object, true);
+    //        readPixmap = icon.pixmap(128, 128);
+    //    }
 
-        const FileSystemObject& object = item.second;
-        const auto& props = object.properties();
+    //    ItemData itemData = {
+    //        object.fullName(),
+    //        object.fullAbsolutePath(),
+    //        object.extension(),
+    //        readPixmap,
+    //    };
 
-        auto fileNameItem = new QStandardItem();
-        fileNameItem->setEditable(false);
-        if (props.type == Directory && props.type != Bundle)
-            fileNameItem->setData(QString("[" % (object.isCdUp() ? QLatin1String("..") : props.fullName) % "]"), Qt::DisplayRole);
-        else if (props.completeBaseName.isEmpty() && props.type == File) // File without a name, displaying extension in the name field and adding point to extension
-            fileNameItem->setData(QString('.') + props.extension, Qt::DisplayRole);
-        else
-            fileNameItem->setData(props.completeBaseName, Qt::DisplayRole);
-        //fileNameItem->setIcon(CIconProvider::iconForFilesystemObject(object, useLessPreciseIcons));
-        fileNameItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-        qTreeViewItems.emplace_back(TreeViewItem{ itemRow, NameColumn, fileNameItem });
+    //    //整体存取, Qt::UserRole + 1 delegate拿不到数据，改成 Qt::UserRole + 3
+    //    thumbnailItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);
 
-        auto fileExtItem = new QStandardItem();
-        fileExtItem->setEditable(false);
-        if (!object.isCdUp() && !props.completeBaseName.isEmpty() && !props.extension.isEmpty())
-            fileExtItem->setData(props.extension, Qt::DisplayRole);
-        fileExtItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-        qTreeViewItems.emplace_back(TreeViewItem{ itemRow, ExtColumn, fileExtItem });
-
-        auto sizeItem = new QStandardItem();
-        sizeItem->setEditable(false);
-        if (props.size > 0 || props.type == File)
-            sizeItem->setData(fileSizeToString(props.size), Qt::DisplayRole);
-
-        sizeItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-        qTreeViewItems.emplace_back(TreeViewItem{ itemRow, SizeColumn, sizeItem });
-
-        auto dateItem = new QStandardItem();
-        dateItem->setEditable(false);
-        if (!object.isCdUp())
-        {
-            QDateTime modificationDate = fromTime_t(props.modificationDate).toLocalTime();
-            dateItem->setData(modificationDate.toString("dd.MM.yyyy hh:mm:ss"), Qt::DisplayRole);
-        }
-        dateItem->setData(static_cast<qulonglong>(props.hash), Qt::UserRole); // Unique identifier for this object
-        qTreeViewItems.emplace_back(TreeViewItem{ itemRow, DateColumn, dateItem });
-
-        ++itemRow;
-    }
-    for (const auto& qTreeViewItem : qTreeViewItems) {
-        data->setItem(qTreeViewItem.row, qTreeViewItem.column, qTreeViewItem.item);
-    }
-    sortModel->setSourceModel(data);
-    listView->setModel(data);
-
-    if (nullptr == list_delegate)
-    {
-        list_delegate = listView->itemDelegate();
-    }
-    return itemRow;
-}
-
-int FileWidget::setThumbnailView(const std::map<qulonglong, FileSystemObject> items, QStandardItemModel* data)
-{
-    for (const auto& item : items) {
-        const FileSystemObject& object = item.second;
-
-        QStandardItem* thumbnailItem = new QStandardItem;
-
-        ItemData itemData;
- 
-        itemData.fullName = object.fullName();
-        itemData.fullAbsolutePath = object.fullAbsolutePath();
-        itemData.extension = object.extension();
-
-        thumbnailItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);//整体存取
-
-        data->appendRow(thumbnailItem);      //追加Item
-    }
-    thumbnailView->setModel(data);
-    return items.size();
+    //    data->appendRow(thumbnailItem);
+    //}
+    //thumbnailView->setModel(data);
+    //return items.size();
 }
 
 void FileWidget::thumbnail()
@@ -288,37 +243,38 @@ void FileWidget::thumbnail()
     this->fileViewType = FileViewType::thumbnail;
     //QAbstractItemModel *data = this->proxyModel->sourceModel();
 
-    this->thumbnailView->setViewMode(QListView::IconMode);
+    //this->thumbnailView->setViewMode(QListView::IconMode);
     //this->listView->setIconSize(QSize(120, 120));
     //this->listView->setAlternatingRowColors(false);
     //this->listView->viewport()->setAttribute(Qt::WA_StaticContents);
     //this->listView->setAttribute(Qt::WA_MacShowFocusRect, false);
-    fillFromList(model->getItems());
+    //setThumbnailView(this->proxyModel->sourceModel());
+    stackedWidget->setCurrentIndex(1);
 }
 
 void FileWidget::detail()
 {
     this->fileViewType = FileViewType::List;
-    fillFromList(model->getItems());
+    stackedWidget->setCurrentIndex(0);
 }
 
 void FileWidget::onTreeViewClicked(const QModelIndex& index) {
     QString target;
-    FileSystemObject* info = model->itemByIndex(index);
+    QFileInfo info = proxyModel->fileInfo(index);
 
-    if (info->isSymLink()) {
+    if (info.isShortcut()) {
         // handle shortcut
-        if (!info->exists()) {
+        if (!info.exists()) {
             return;
         }
-        target = info->fullName();
+        target = info.symLinkTarget();
     }
     else {
-        target = info->fullName();
+        target = info.absoluteFilePath();
     }
 
     // If the file is a symlink, this function returns true if the target is a directory (not the symlink)
-    if (info->isDir()) {
+    if (info.isDir()) {
         //cdPath(target);
     }
     else {    //    else if (info.isFile())
@@ -329,7 +285,6 @@ void FileWidget::onTreeViewClicked(const QModelIndex& index) {
 //void FileWidget::onTreeViewDoubleClicked(const QModelIndex &index) {
 //
 //}
-
 
 void FileWidget::onItemActivated(const QString& path) {
     //    if (!QFileInfo::exists(path)) {   // shortcut maybe not exist

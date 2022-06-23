@@ -67,6 +67,10 @@ public:
     const FileDetails& getCurrentFileDetails() const {return currentFileDetails; }
     int getCurrentRotation() const {return currentRotation; }
 
+    int getLargestDimension() const {
+        return largestDimension;
+    }
+
 signals:
     void animatedFrameChanged(QRect rect);
 
