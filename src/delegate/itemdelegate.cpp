@@ -5,15 +5,14 @@
 #include <QStyle>
 #include <QEvent>
 #include <QMouseEvent>
-#include <QDebug>
 #include <QPainterPath>
 #include <QApplication>
 #include <QFileSystemModel>
 #include <QFileInfo>
 #include <QFileIconProvider>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include "../filelistmodel/filefilterproxymodel.h"
-#include "../imagecore.h"
 #include "../config.h"
 #include "../logger/Logger.h"
 
@@ -42,13 +41,10 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
 
     if (fileInfo.suffix() == "png" || fileInfo.suffix() == "dat")
     {
-        ImageCore::ReadData image = imageCore->readFile(fileInfo.filePath(), true);
+        DWORD start = GetTickCount();
+        ImageCore::ReadData image = imageCore->readFileSize(fileInfo.filePath(), true, QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
         thumbnail = image.pixmap;
-        if (thumbnail.width() > THUMBNAIL_WIDE || thumbnail.height() > THUMBNAIL_HEIGHT)
-        {
-            thumbnail = thumbnail.scaled(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT, Qt::KeepAspectRatio);
-        }
-        //itemData.thumbnail = pixmap;
+        LOG_INFO << "imageCore->readFile time: " << GetTickCount() - start;
     }
     else {
         auto* iconProvider = (QFileIconProvider*)model->iconProvider();

@@ -1,9 +1,10 @@
 #ifndef ITEMDELEGATE_H
 #define ITEMDELEGATE_H
 
+#include "../imagecore.h"
+
 #include <QStyledItemDelegate>
 #include <QModelIndex>
-#include <QStandardItemModel>
 
 class ImageCore;
 

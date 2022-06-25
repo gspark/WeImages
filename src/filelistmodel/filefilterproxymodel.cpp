@@ -1,15 +1,12 @@
 #include "filefilterproxymodel.h"
 
-#include <QtDebug>
 #include <QDateTime>
-
 
 FileFilterProxyModel::FileFilterProxyModel()
 {
     useFilter = false;
     sortColumn = 0;
 }
-
 
 // filter
 void FileFilterProxyModel::enableFilter(bool enable)
@@ -34,7 +31,6 @@ bool FileFilterProxyModel::filterAcceptsRow(int sourceRow,
 
     return (info.isDir() && !info.isShortcut());
 }
-
 
 // sort
 void FileFilterProxyModel::sort(int column, Qt::SortOrder order)
@@ -101,7 +97,6 @@ bool FileFilterProxyModel::lessThan(const QModelIndex &source_left, const QModel
         return false;
     }
 }
-
 
 // QFileSystemModel
 QFileSystemModel *FileFilterProxyModel::srcModel()

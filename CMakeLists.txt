@@ -10,7 +10,7 @@ set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windo
 #SET(CMAKE_BUILD_TYPE Release)
 #SET(CMAKE_BUILD_TYPE Debug)
 
-if (("${CMAKE_BUILD_TYPE}" STREQUAL "x64-Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
+if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
     add_definitions(-D_DEBUG)
     set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
@@ -45,7 +45,7 @@ find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
 
-add_definitions(-DVERSION)
+# add_definitions(-DVERSION)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

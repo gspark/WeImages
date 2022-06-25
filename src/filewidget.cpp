@@ -173,10 +173,10 @@ void FileWidget::updateCurrentPath(const QString& dir)
     {
         //QFileSystemModel* data = (QFileSystemModel*)this->proxyModel->srcModel();
         //data->setRootPath(dir);
-        thumbnailView->setUpdatesEnabled(false);
+        //thumbnailView->setUpdatesEnabled(false);
         thumbnailView->setRootIndex(index);
         //setThumbnailView(data);
-        thumbnailView->setUpdatesEnabled(true);
+        //thumbnailView->setUpdatesEnabled(true);
         stackedWidget->setCurrentIndex(1);
     }
 }
@@ -232,7 +232,7 @@ void FileWidget::onTreeViewClicked(const QModelIndex& index) {
         //cdPath(target);
     }
     else {    //    else if (info.isFile())
-        this->imageCore->loadFile(target);
+        //this->imageCore->loadFile(target);
     }
 }
 
