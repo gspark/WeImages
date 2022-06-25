@@ -62,7 +62,7 @@ void MainWindow::fileModelInit() {
      * add QDir::Hidden will show some files that not visible on Windows, these files may be modified by mistake.
      */
     //fileModel->setFilter(QDir::AllEntries | QDir::NoDot | QDir::AllDirs | QDir::System/* | QDir::Hidden*/);
-    fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System/* | QDir::Hidden*/);
+    fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System | QDir::Hidden);
     fileModel->setNameFilters(QStringList() << "*.jpg" << "*.gif" << "*.png" << "*.dat");
     fileModel->setReadOnly(true);
 }

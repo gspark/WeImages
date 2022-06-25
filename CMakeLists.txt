@@ -49,6 +49,7 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
+find_package(Qt6 COMPONENTS Concurrent)
 
 # add_definitions(-DVERSION)
 
@@ -79,6 +80,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt::Core
         Qt::Gui
         Qt::Widgets
+        Qt6::Concurrent
         )
 
 #set(ZLIB_INCLUDE_DIR "d:/ops/zlib/include")

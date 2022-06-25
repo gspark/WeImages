@@ -24,6 +24,8 @@
 #include <QActionGroup>
 #include <QStackedWidget>
 #include <QHeaderView>
+#include <QtConcurrent/QtConcurrent>
+#include <functional>
 
 inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
 {
@@ -43,14 +45,15 @@ inline wchar_t* appendToString(wchar_t* buffer, const QString& what)
 FileWidget::FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
  
     this->imageCore = imageCore;
+    this->thumbnailModel = nullptr;
 
     this->fileViewType = ::FileViewType::List;
 
     // init file model
-    auto* fileModel = (QFileSystemModel*)model;
+    fileSystemMode = (QFileSystemModel*)model;
 
     proxyModel = new FileFilterProxyModel;
-    proxyModel->setSourceModel(fileModel);
+    proxyModel->setSourceModel(fileSystemMode);
 
     // widget init
     setupToolBar();
@@ -100,9 +103,6 @@ void FileWidget::initTableView()
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView->setContentsMargins(0, 0, 0, 0);
     tableView->setModel(proxyModel);
-
-    // interactive settings
-    //listView->setSelectionBehavior(QAbstractItemView::SelectRows);
     // view settings
     //listView->setStyle(QStyleFactory::create("Fusion"));
 
@@ -120,26 +120,18 @@ void FileWidget::initThumbnailView()
     }
     m_delegate = new ItemDelegate(this->imageCore, this);
 
-    //m_proxyModel = new QSortFilterProxyModel(ui->listView);
-    //m_proxyModel->setSourceModel(m_model);
-    //m_proxyModel->setFilterRole(Qt::UserRole);
-    //m_proxyModel->setDynamicSortFilter(true);
-    //ui->listView->setModel(m_proxyModel);                  //为委托设置模型
-    //ui->listView->setViewMode(QListView::IconMode); //设置Item图标显示
-    //ui->listView->setDragEnabled(false);            //控件不允许拖动
-
     thumbnailView = new QListView(this);
     thumbnailView->setContentsMargins(0, 0, 0, 0);
     thumbnailView->setStyleSheet("background-color: transparent;border:1px solid #EFEFEF;");
-    //为视图设置委托
+    // 为视图设置委托
     thumbnailView->setItemDelegate(m_delegate);
-    //为视图设置控件间距
+    // 为视图设置控件间距
     thumbnailView->setSpacing(1);
+    // 设置Item图标显示
     thumbnailView->setViewMode(QListView::IconMode);
- /*   thumbnailView->setIconSize(QSize(210, 210));*/
     thumbnailView->setResizeMode(QListView::Adjust);
     thumbnailView->setMovement(QListView::Static);
-    thumbnailView->setModel(proxyModel);
+    //thumbnailView->setModel(this->thumbnailModel);
 }
 
 void FileWidget::initWidgetLayout() {
@@ -165,24 +157,76 @@ void FileWidget::cdPath(const QString& path)
 
 void FileWidget::updateCurrentPath(const QString& dir)
 {
-    QModelIndex index = proxyModel->proxyIndex(dir);
-
     if (FileViewType::List == fileViewType)
     {
+        //proxyModel->setSourceModel(fileSystemMode);
+        QModelIndex index = proxyModel->proxyIndex(dir);
         this->tableView->setRootIndex(index);
         stackedWidget->setCurrentIndex(0);
     }
     else if (FileViewType::thumbnail == fileViewType)
     {
-        //QFileSystemModel* data = (QFileSystemModel*)this->proxyModel->srcModel();
-        //data->setRootPath(dir);
-        //thumbnailView->setUpdatesEnabled(false);
-        thumbnailView->setRootIndex(index);
+        if (nullptr == thumbnailModel)
+        {
+            thumbnailModel = new QStandardItemModel;
+            thumbnailView->setModel(this->thumbnailModel);
+        }
+        else {
+            thumbnailModel->clear();
+        }
+        QList<QFileInfo> fileInfos = getFileInfoList(dir);
+        if (fileInfos.isEmpty())
+        {
+            return;
+        }
+        int itemRow = 0;
+        //QThreadPool::globalInstance()->setMaxThreadCount(4);
+        std::function<QStandardItem*(const QFileInfo&)> getThumbnailItem = [this](const QFileInfo& fileInfo) -> QStandardItem*
+        {
+            //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+            auto thumbnailItem = new QStandardItem();
+            thumbnailItem->setEditable(false);
+            auto itemData = new ThumbnailData;;
+            itemData->fullName = fileInfo.fileName();
+            itemData->fullAbsolutePath = fileInfo.filePath();
+            itemData->extension = fileInfo.suffix();
+
+            if (fileInfo.suffix() == "png" || fileInfo.suffix() == "dat")
+            {
+                {
+                    std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+                    ImageCore::ReadData image = imageCore->readFileSize(fileInfo.filePath(), true, QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
+                    itemData->thumbnail = image.pixmap;
+                }
+            }
+            else {
+                {
+                    std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+                    auto* iconProvider = (QFileIconProvider*)fileSystemMode->iconProvider();
+                    auto icon = iconProvider->icon(fileInfo);
+                    itemData->thumbnail = icon.pixmap(48, 48);
+                }
+            }
+            thumbnailItem->setData(QVariant::fromValue(*itemData), Qt::UserRole + 3);
+            return thumbnailItem;
+        };
+
+        QFuture<QStandardItem*> future = QtConcurrent::mapped(fileInfos, getThumbnailItem);
+        future.waitForFinished();
+        QList<QStandardItem*> items = future.results();
+
+        thumbnailView->setUpdatesEnabled(false);
+        for (const auto item : items) {
+            thumbnailModel->appendRow(item);
+        }
+        //thumbnailView->setRootIndex(index);
         //setThumbnailView(data);
-        //thumbnailView->setUpdatesEnabled(true);
+        /*proxyModel->setSourceModel(thumbnailModel);*/
+        thumbnailView->setUpdatesEnabled(true);
         stackedWidget->setCurrentIndex(1);
     }
 }
+
 
 void FileWidget::onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) {
 
@@ -256,3 +300,15 @@ void FileWidget::onNavigateBarClicked(const QString& path)
     cdPath(path);
 }
 
+QList<QFileInfo> FileWidget::getFileInfoList(const QString& currentDirPath)
+{
+    QList<QFileInfo> list;
+    //{
+        //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
+
+        list = QDir{ currentDirPath }.entryInfoList(
+            QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System, QDir::NoSort);
+    //}
+    return list;
+
+}

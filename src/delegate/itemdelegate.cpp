@@ -15,6 +15,7 @@
 #include "../filelistmodel/filefilterproxymodel.h"
 #include "../config.h"
 #include "../logger/Logger.h"
+#include "itemdef.h"
 
 
 ItemDelegate::ItemDelegate(ImageCore* imageCore, QObject* parent) :
@@ -34,29 +35,16 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     {
         return;
     }
-    FileFilterProxyModel* model = (FileFilterProxyModel*)index.model();
-    QFileInfo fileInfo = model->fileInfo(index);
-
-    QPixmap thumbnail;
-
-    if (fileInfo.suffix() == "png" || fileInfo.suffix() == "dat")
+    //FileFilterProxyModel* model = (FileFilterProxyModel*)index.model();
+    //QFileInfo fileInfo = model->fileInfo(index);
+    QVariant variant = index.data(Qt::UserRole + 3);
+    if (variant.isNull())
     {
-        ImageCore::ReadData image = imageCore->readFileSize(fileInfo.filePath(), true, QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
-        thumbnail = image.pixmap;
+        return;
     }
-    else {
-        auto* iconProvider = (QFileIconProvider*)model->iconProvider();
-        auto icon = iconProvider->icon(fileInfo);
-        thumbnail = icon.pixmap(48, 48);
-    }
+    ThumbnailData data = variant.value<ThumbnailData>();
 
     painter->save();
-    //QVariant variant = index.data(Qt::UserRole + 3);
-    //if (variant.isNull())
-    //{
-    //    return;
-    //}
-    //ItemData data = variant.value<ItemData>();
 
     // 用来在视图中画一个item
     QStyleOptionViewItem viewOption(option);
@@ -131,18 +119,18 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     // 绘制缩略图
     //LOG_INFO << "thumbnail.width " << thumbnail.width() << " thumbnail.height " << thumbnail.height();
     QRect pixmapRect = QRect(
-        rect.left() + (rect.width() - thumbnail.width()) / 2,
-        rect.top() + (rect.height() - 50 - thumbnail.height() ) / 2, 
-        thumbnail.width(),
-        thumbnail.height());
-    painter->drawPixmap(pixmapRect, thumbnail);
+        rect.left() + (rect.width() - data.thumbnail.width()) / 2,
+        rect.top() + (rect.height() - 50 - data.thumbnail.height() ) / 2,
+        data.thumbnail.width(),
+        data.thumbnail.height());
+    painter->drawPixmap(pixmapRect, data.thumbnail);
     //LOG_INFO << "pixmapRect.left " << pixmapRect.left() << " pixmapRect.top " << pixmapRect.top();
 
     //绘制名字
     QRect NameRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 30, 20);
     painter->setPen(QPen(Qt::black));
     painter->setFont(QFont("Fixedsys", 12));
-    painter->drawText(NameRect, Qt::AlignLeft, fileInfo.fileName());
+    painter->drawText(NameRect, Qt::AlignLeft, data.fullName);
     //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
     painter->restore();
 }
