@@ -23,6 +23,7 @@
 #include <QStandardItemModel>
 #include <QActionGroup>
 #include <QStackedWidget>
+#include <QHeaderView>
 
 inline wchar_t* appendToString(wchar_t* buffer, const wchar_t* what, size_t whatLengthInCharacters = 0)
 {
@@ -53,7 +54,7 @@ FileWidget::FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget*
 
     // widget init
     setupToolBar();
-    listView = nullptr;
+    tableView = nullptr;
     thumbnailView = nullptr;
     initListView();
     initWidgetLayout();
@@ -61,7 +62,7 @@ FileWidget::FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget*
 
 FileWidget::~FileWidget() {
     proxyModel->deleteLater();
-    listView = nullptr;
+    tableView = nullptr;
     thumbnailView = nullptr;
 }
 
@@ -90,13 +91,15 @@ void FileWidget::initListView() {
 
 void FileWidget::initTableView()
 {
-    if (nullptr != listView)
+    if (nullptr != tableView)
     {
         return;
     }
-    listView = new QTableView;
-    listView->setContentsMargins(0, 0, 0, 0);
-    listView->setModel(proxyModel);
+    tableView = new QTableView;
+    tableView->verticalHeader()->setVisible(false);
+    tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableView->setContentsMargins(0, 0, 0, 0);
+    tableView->setModel(proxyModel);
 
     // interactive settings
     //listView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -105,7 +108,7 @@ void FileWidget::initTableView()
 
     //connect(listView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
 
-    connect(listView, &QListView::clicked, this, &FileWidget::onTreeViewClicked);
+    connect(tableView, &QListView::clicked, this, &FileWidget::onTreeViewClicked);
     //connect(listView, &QListView::doubleClicked, this, &FileWidget::onTreeViewDoubleClicked);
 }
 
@@ -146,7 +149,7 @@ void FileWidget::initWidgetLayout() {
     this->setLayout(vLayout);
 
     stackedWidget = new QStackedWidget(this);
-    stackedWidget->addWidget(listView);
+    stackedWidget->addWidget(tableView);
     stackedWidget->addWidget(thumbnailView);
 
     vLayout->addWidget(toolBar);
@@ -166,7 +169,7 @@ void FileWidget::updateCurrentPath(const QString& dir)
 
     if (FileViewType::List == fileViewType)
     {
-        this->listView->setRootIndex(index);
+        this->tableView->setRootIndex(index);
         stackedWidget->setCurrentIndex(0);
     }
     else if (FileViewType::thumbnail == fileViewType)

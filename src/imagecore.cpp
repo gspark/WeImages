@@ -21,9 +21,9 @@ ImageCore::ImageCore(QObject *parent) : QObject(parent)
 #endif
     QPixmapCache::setCacheLimit(51200);
 
-    connect(&loadFutureWatcher, &QFutureWatcher<ReadData>::finished, this, [this](){
+    connect(&loadFutureWatcher, &QFutureWatcher<ReadData>::finished, this, [this]() {
         loadPixmap(loadFutureWatcher.result(), false);
-    });
+        });
 }
 
 
@@ -71,7 +71,7 @@ ImageCore::ReadData ImageCore::readFile(const QString &fileName, bool forCache)
 
 ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCache, const QSize& targetSize)
 {
-    LOG_INFO << "ImageCore::readFile " << fileName;
+    //LOG_INFO << "ImageCore::readFile " << fileName;
     QFileInfo fileInfo(fileName);
     auto* cachedPixmap = new QPixmap();
     if (QPixmapCache::find(fileName, cachedPixmap) && !cachedPixmap->isNull())
@@ -91,7 +91,11 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
 
     if (fileInfo.suffix() == "dat") {
         // wechat picture
+        DWORD start = GetTickCount();
         BYTE* imageData = datConverImage(fileName, fileInfo.size());
+        LOG_INFO << " datConverImage time: " << GetTickCount() - start;
+
+        start = GetTickCount();
         if (readPixmap.loadFromData(imageData, fileInfo.size())) {
             if (readPixmap.isNull()) {
                 return {};
@@ -102,6 +106,7 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
             readPixmap = readPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
             size = readPixmap.size();
         }
+        LOG_INFO << " loadFromData time: " << GetTickCount() - start;
         delete imageData;
     }
     else {
@@ -110,10 +115,9 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
         imageReader.setAutoTransform(true);
 
         imageReader.setFileName(fileName);
-        auto imageSize = imageReader.size();
         if (targetSize.isValid())
         {
-            auto targetScaledSize = imageSize.scaled(targetSize, Qt::KeepAspectRatio);
+            auto targetScaledSize = imageReader.size().scaled(targetSize, Qt::KeepAspectRatio);
             imageReader.setScaledSize(targetSize);
         }
 
@@ -129,7 +133,9 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
         }
         else
         {
+            DWORD start = GetTickCount();
             readPixmap = QPixmap::fromImageReader(&imageReader);
+            LOG_INFO << " QPixmap::fromImageReader time: " << GetTickCount() - start;
         }
         size = imageReader.size();
     }

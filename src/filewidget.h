@@ -55,7 +55,7 @@ private:
     QStackedWidget* stackedWidget;
 
     // pointer of current view and history, can not delete
-    QTableView* listView;
+    QTableView* tableView;
 
     QListView* thumbnailView;
 

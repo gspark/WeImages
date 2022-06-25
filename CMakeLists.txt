@@ -16,9 +16,14 @@ if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL 
     set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
     ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     ## SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    # Debug用DLL运行库，Release用静态链接运行库
+    ## set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>")
 else ()
     message("build type: " "Release")
     set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
+    # Debug、Release都用静态链接运行库，推荐用于不想让用户装各种VC++运行库的软件
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
 
 list(APPEND CMAKE_PREFIX_PATH ${QT_STATIC_PATH})
@@ -46,8 +51,6 @@ find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
 
 # add_definitions(-DVERSION)
-
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 file(GLOB_RECURSE all_src_file
         src/*.cpp src/*.hpp src/*.c src/*.h src/*.ui
@@ -78,16 +81,16 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt::Widgets
         )
 
-set(ZLIB_INCLUDE_DIR "d:/ops/zlib/include")
-set(ZLIB_LIBRARY "d:/ops/zlib/lib/zlibstatic.lib")
-find_package(ZLIB REQUIRED)
-if (ZLIB_FOUND AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Release"))
-    message(STATUS "zlib lib = ${ZLIB_LIBRARIES}")
-    #    target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
-    # 链接 dll.a 有依赖dll
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${PREBUILT_LIB_DIRECTORY}/libz.a)
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${PREBUILT_LIB_DIRECTORY}/libzstd.a)
-endif ()
+#set(ZLIB_INCLUDE_DIR "d:/ops/zlib/include")
+#set(ZLIB_LIBRARY "d:/ops/zlib/lib/zlibstatic.lib")
+#find_package(ZLIB REQUIRED)
+#if (ZLIB_FOUND AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Release"))
+#    message(STATUS "zlib lib = ${ZLIB_LIBRARIES}")
+#    #    target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
+#    # 链接 dll.a 有依赖dll
+#    target_link_libraries(${PROJECT_NAME} PUBLIC ${PREBUILT_LIB_DIRECTORY}/libz.a)
+#    target_link_libraries(${PROJECT_NAME} PUBLIC ${PREBUILT_LIB_DIRECTORY}/libzstd.a)
+#endif ()
 
 #链接gcc-g++静态库
 if (MINGW AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Release"))

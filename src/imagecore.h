@@ -17,17 +17,17 @@ class ImageCore : public QObject
     Q_OBJECT
 
 public:
-    struct FileDetails
-    {
-        QFileInfo fileInfo;
-        QFileInfoList folderFileInfoList;
-        int loadedIndexInFolder = -1;
-        bool isLoadRequested = false;
-        bool isPixmapLoaded = false;
-        bool isMovieLoaded = false;
-        QSize baseImageSize;
-        QSize loadedPixmapSize;
-    };
+    //struct FileDetails
+    //{
+    //    QFileInfo fileInfo;
+    //    QFileInfoList folderFileInfoList;
+    //    int loadedIndexInFolder = -1;
+    //    bool isLoadRequested = false;
+    //    bool isPixmapLoaded = false;
+    //    bool isMovieLoaded = false;
+    //    QSize baseImageSize;
+    //    QSize loadedPixmapSize;
+    //};
 
     struct ReadData
     {

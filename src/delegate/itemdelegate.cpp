@@ -10,7 +10,7 @@
 #include <QFileSystemModel>
 #include <QFileInfo>
 #include <QFileIconProvider>
-#include <QtConcurrent/QtConcurrentRun>
+//#include <QtConcurrent/QtConcurrentRun>
 
 #include "../filelistmodel/filefilterproxymodel.h"
 #include "../config.h"
@@ -41,10 +41,8 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
 
     if (fileInfo.suffix() == "png" || fileInfo.suffix() == "dat")
     {
-        DWORD start = GetTickCount();
         ImageCore::ReadData image = imageCore->readFileSize(fileInfo.filePath(), true, QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
         thumbnail = image.pixmap;
-        LOG_INFO << "imageCore->readFile time: " << GetTickCount() - start;
     }
     else {
         auto* iconProvider = (QFileIconProvider*)model->iconProvider();
