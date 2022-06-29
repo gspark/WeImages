@@ -33,7 +33,7 @@ class QStandardItem;
 
 
 enum FileViewType {
-    List, thumbnail
+    Table, Thumbnail
 };
 
 class FileWidget : public QWidget {
@@ -86,6 +86,8 @@ private:
 
     void updateCurrentPath(const QString& dir);
 
+    void setThumbnailView(const QString& dir, bool initModel = false);
+
     //QStandardItem* getThumbnailItem(QFileInfo& fileInfo);
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
@@ -98,11 +100,13 @@ private slots:
     // tree view
     void onTreeViewClicked(const QModelIndex& index);
 
-    //void onTreeViewDoubleClicked(const QModelIndex &index);
+    void onFileDoubleClicked(const QModelIndex &index);
 
     void thumbnail();
 
     void detail();
+
+    void selectAll();
 };
 
 #endif // FILEWIDGET_H

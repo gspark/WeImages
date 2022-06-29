@@ -19,7 +19,7 @@ ImageCore::ImageCore(QObject *parent) : QObject(parent)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     QImageReader::setAllocationLimit(8192);
 #endif
-    QPixmapCache::setCacheLimit(51200);
+    QPixmapCache::setCacheLimit(512000);
 
     connect(&loadFutureWatcher, &QFutureWatcher<ReadData>::finished, this, [this]() {
         loadPixmap(loadFutureWatcher.result(), false);
@@ -71,7 +71,7 @@ ImageCore::ReadData ImageCore::readFile(const QString &fileName, bool forCache)
 
 ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCache, const QSize& targetSize)
 {
-    //LOG_INFO << "ImageCore::readFile " << fileName;
+    LOG_INFO << "ImageCore::readFile " << fileName;
     QFileInfo fileInfo(fileName);
     auto* cachedPixmap = new QPixmap();
     if (QPixmapCache::find(fileName, cachedPixmap) && !cachedPixmap->isNull())
@@ -83,11 +83,10 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
         };
         return readData;
     }
+    LOG_INFO << "fileInfo::absoluteFilePath " << fileInfo.absoluteFilePath();
 
     QPixmap readPixmap;
     QSize size;
-
-    //QString imageFileName(fileName);
 
     if (fileInfo.suffix() == "dat") {
         // wechat picture
@@ -166,9 +165,9 @@ void ImageCore::loadPixmap(const ReadData& readData, bool fromCache)
 
 void ImageCore::addToCache(const ReadData &readData)
 {
-    if (readData.pixmap.isNull())
+    if (readData.pixmap.isNull()) {
         return;
-
+    }
     QPixmapCache::insert(readData.fileInfo.absoluteFilePath(), readData.pixmap);
 
 //    auto *size = new qint64(readData.fileInfo.size());
