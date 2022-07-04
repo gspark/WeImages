@@ -4,13 +4,18 @@
 #include <QObject>
 #include <QImageReader>
 #include <QPixmap>
-#include <QMovie>
 #include <QFileInfo>
 #include <QFutureWatcher>
-#include <QTimer>
-#include <QCache>
 #include <QOpenGLContext>
 
+#define THUMBNAIL_WIDE 112
+#define THUMBNAIL_HEIGHT 96
+
+#define THUMBNAIL_WIDE_N 192
+#define THUMBNAIL_HEIGHT_N 162
+
+#define ICON_WIDE 48
+#define ICON_HEIGHT 48
 
 class ImageCore : public QObject
 {
@@ -33,19 +38,28 @@ public:
     {
         QPixmap pixmap;
         QFileInfo fileInfo;
-        QSize size;
     };
 
     explicit ImageCore(QObject* parent = nullptr);
 
-    void loadFile(const QString& fileName);
+    //************************************
+    // Method:    loadFile
+    // Returns:   void
+    // Parameter: const QString & fileName
+    // 图片异步返回
+    //************************************
+    void loadFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
 
-    ReadData readFile(const QString& fileName, bool forCache);
-    ReadData readFileSize(const QString& fileName, bool forCache, const QSize& targetSize);
+    ReadData readFile(const QString& fileName, bool forCache, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
+    //ReadData readFileSize(const QString& fileName, bool forCache, const QSize& targetSize);
     void loadPixmap(const ReadData& readData, bool fromCache);
     void addToCache(const ReadData& readImageAndFileInfo);
+
+    bool isImageFile(const QFileInfo& fileInfo);
+
+    QStringList imageFileNames();
 signals:
-    void fileDataChanged(const QPixmap& readData);
+    void imageLoaded(const QPixmap& readData);
 private:
     QFutureWatcher<ReadData> loadFutureWatcher;
 

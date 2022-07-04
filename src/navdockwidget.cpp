@@ -8,8 +8,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QScrollArea>
-
+#include <QTreeView>
+#include <QHeaderView>
 
 
 NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
@@ -18,39 +18,41 @@ NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
     fileModel = (QFileSystemModel*)model;
     
     proxyModel = new FileFilterProxyModel;
-    treeView = new TreeView;
+    treeView = new QTreeView;
 
     thumbnail = new QLabel;
     thumbnail->setBackgroundRole(QPalette::Base);
     //thumbnail->setStyleSheet("QLabel{bkorder:1px solid rgb(0, 255, 0);}");
-    thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-    thumbnail->setScaledContents(true);
+    thumbnail->setGeometry(0, 0, -1, -1);
+    //thumbnail->setMinimumHeight(THUMBNAIL_HEIGHT);
+    //thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    thumbnail->setAlignment(Qt::AlignCenter);
+    //thumbnail->setScaledContents(true);
 
     //thumbnail->setFrameStyle(QFrame::WinPanel | QFrame::Raised);
     //thumbnail->setLineWidth(3);
     //thumbnail->setStyleSheet("QLabel {background-color:black}");
 
-    scrollArea = new QScrollArea;
-    scrollArea->setBackgroundRole(QPalette::Dark);
-    scrollArea->setWidget(thumbnail);
-    scrollArea->setVisible(false);
+    //scrollArea = new QScrollArea;
+    //scrollArea->setBackgroundRole(QPalette::Dark);
+    //scrollArea->setWidget(thumbnail);
+    //scrollArea->setVisible(false);
 
     fileModelInit();
     treeViewInit();
 
-    auto* vLayout = new QVBoxLayout(this);
+    auto* widget = new QWidget(this);
+    auto* vLayout = new QVBoxLayout(widget);
     vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->addWidget(treeView);
     //vLayout->addStretch();
-    vLayout->addWidget(scrollArea);
-    auto* widget = new QWidget(this);
-    widget->setLayout(vLayout);
+    vLayout->addWidget(thumbnail);
 
-    setWidget(widget);
+    this->setWidget(widget);
 
     loadDockInfo();
 
-    connect(imageCore, &ImageCore::fileDataChanged, this, &NavDockWidget::fileDataChanged);
+    connect(imageCore, &ImageCore::imageLoaded, this, &NavDockWidget::imageLoaded);
 }
 
 NavDockWidget::~NavDockWidget()
@@ -63,7 +65,7 @@ NavDockWidget::~NavDockWidget()
 
 QSize NavDockWidget::sizeHint() const
 {
-    return QSize(200, -1);
+    return QSize(220, -1);
 }
 
 
@@ -71,11 +73,6 @@ void NavDockWidget::fileModelInit()
 {
     proxyModel->setSourceModel(fileModel);
     proxyModel->enableFilter(true);
-
-//    fileModel = new QFileSystemModel;
-//    fileModel->setRootPath("");
-//    fileModel->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot);
-//    fileModel->setReadOnly(false);
 }
 
 void NavDockWidget::treeViewInit()
@@ -84,22 +81,12 @@ void NavDockWidget::treeViewInit()
 
     treeView->setSortingEnabled(true);
     treeView->sortByColumn(0, Qt::AscendingOrder);
-//    proxyModel->sort(-1, Qt::AscendingOrder);
-
-    //// interactive settings
-    //treeView->setDragEnabled(true);
-    //treeView->setAcceptDrops(true);
-    //treeView->setDropIndicatorShown(true);
-    //treeView->setDragDropMode(QAbstractItemView::DragDrop);     // move target on FileSystemModel, not copy
-
-    connect(treeView, &QTreeView::expanded, this, &NavDockWidget::onExpanded);
-    connect(treeView, &TreeView::treeViewGotFocus, this, &NavDockWidget::refreshTreeView);
 
     connect(treeView, &QTreeView::clicked, this, &NavDockWidget::onTreeViewClicked);
 
     // view settings
-    treeView->setStyle(QStyleFactory::create("Fusion"));
-    treeView->hideColumn(1);    //  treeView->setColumnHidden(1, true);
+    //treeView->setStyle(QStyleFactory::create("Fusion"));
+    treeView->hideColumn(1); 
     treeView->hideColumn(2);
     treeView->hideColumn(3);
 
@@ -112,38 +99,8 @@ void NavDockWidget::onTreeViewClicked(const QModelIndex &index)
 {
     QFileInfo info = proxyModel->fileInfo(index);
     if (info.isDir()) {
-        emit navDockClicked(info.absoluteFilePath());
+        emit treeViewClicked(info.absoluteFilePath());
     }
-}
-
-void NavDockWidget::onExpanded(const QModelIndex &index)
-{
-    QString path = proxyModel->fileInfo(index).absoluteFilePath();
-//    qDebug() << QString("dock onExpanded %1").arg(path);
-
-    //((QFileSystemModel *)proxyModel->srcModel())->refreshDir(path);
-}
-
-void NavDockWidget::refreshTreeView()
-{
-    // reset root path, make the model fetch files or directories
-    QString root = fileModel->rootPath();
-    fileModel->setRootPath("");
-
-    QModelIndex index = proxyModel->index(0, 0);
-    while (index.isValid()) {
-//        qDebug() << QString("dock index %1").arg(index.data().toString());
-        if (treeView->isExpanded(index)) {
-            QFileInfo info = proxyModel->fileInfo(index);
-            if (info.fileName() != "." && info.fileName() != "..") {
-//                qDebug() << QString("dock expanded %1, %2").arg(treeView->isExpanded(index)).arg(info.absoluteFilePath());
-                fileModel->setRootPath(info.absoluteFilePath());
-            }
-        }
-        index = treeView->indexBelow(index);
-    }
-
-    fileModel->setRootPath(root);
 }
 
 void NavDockWidget::loadDockInfo()
@@ -164,8 +121,6 @@ void NavDockWidget::loadDockInfo()
 
 void NavDockWidget::saveDockInfo()
 {
-//    qDebug() << QString("saveDockInfo");
-
     QStringList dirList;
     QModelIndex index = proxyModel->index(0, 0);
     while (index.isValid()) {
@@ -177,18 +132,16 @@ void NavDockWidget::saveDockInfo()
         }
         index = treeView->indexBelow(index);
     }
-
-//    qDebug() << dirList;
-
-//    writeArraySettings(CONFIG_GROUP_NAV_DOCK, dirList);
-
-//    writeSettings(CONFIG_GROUP_NAV_DOCK, CONFIG_DOCK_HIDE, isHidden());
 }
 
-void NavDockWidget::fileDataChanged(const QPixmap &readData)
+void NavDockWidget::onCdDir(const QString path)
+{
+    //this->treeView->expand(this->proxyModel->proxyIndex(path));
+    this->treeView->setCurrentIndex(this->proxyModel->proxyIndex(path));
+}
+
+void NavDockWidget::imageLoaded(const QPixmap &readData)
 {
     this->thumbnail->setPixmap(readData);
-    this->thumbnail->adjustSize();
-    scrollArea->setVisible(true);
 }
 

@@ -14,7 +14,6 @@
 #include <QMimeData>
 #include <QFileInfo>
 
-#include "treeview.h"
 #include "imagecore.h"
 
 class QToolBar;
@@ -46,9 +45,8 @@ public:
 
     void setupToolBar();
 
-public slots:    // for shortcut
-    void onItemActivated(const QString& path);
-    void onNavigateBarClicked(const QString& path);
+public slots:
+    void onTreeViewClicked(const QString& path);
 
 private:
     ImageCore* imageCore;
@@ -88,8 +86,6 @@ private:
 
     void setThumbnailView(const QString& dir, bool initModel = false);
 
-    //QStandardItem* getThumbnailItem(QFileInfo& fileInfo);
-
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
     FileViewType fileViewType;
@@ -97,8 +93,6 @@ private:
     QList<QFileInfo> getFileInfoList(const QString& currentDirPath);
  
 private slots:
-    // tree view
-    void onTreeViewClicked(const QModelIndex& index);
 
     void onFileDoubleClicked(const QModelIndex &index);
 
@@ -107,6 +101,9 @@ private slots:
     void detail();
 
     void selectAll();
+
+signals:
+    void onCdDir(const QString path);
 };
 
 #endif // FILEWIDGET_H

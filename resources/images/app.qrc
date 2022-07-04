@@ -1,6 +1,8 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
-    <file>minus.png</file>
-    <file>up.png</file>
-</qresource>
+<RCC>
+    <qresource prefix="/">
+        <file>minus.png</file>
+        <file>up.png</file>
+        <file>LEFTw-01.png</file>
+        <file>RIGHTw-01.png</file>
+    </qresource>
 </RCC>

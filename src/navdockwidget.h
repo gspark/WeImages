@@ -2,16 +2,15 @@
 #define NAVDOCKWIDGET_H
 
 #include <QDockWidget>
-#include <QHeaderView>
-#include <QTreeView>
 
-#include "treeview.h"
+#define OBJECTNAME_NAV_DOCK         "Navigation Bar"
 
 class QLabel;
 class ImageCore;
-class QScrollArea;
 class QFileSystemModel;
 class FileFilterProxyModel;
+class QTreeView;
+class QAbstractItemModel;
 
 class NavDockWidget : public QDockWidget
 {
@@ -22,29 +21,29 @@ public:
 
     virtual QSize sizeHint() const;
 
-    void refreshTreeView();
     void loadDockInfo();
     void saveDockInfo();
+
+public slots:
+    void onCdDir(const QString path);
 
 private:
     QFileSystemModel* fileModel;     // can not delete here
     FileFilterProxyModel* proxyModel;
-    TreeView* treeView;
+    QTreeView* treeView;
     QLabel* thumbnail;
 
     void fileModelInit();
     void treeViewInit();
 
     ImageCore* imageCore;
-    QScrollArea* scrollArea;
 
 private slots:
-    void onExpanded(const QModelIndex& index);
     void onTreeViewClicked(const QModelIndex& index);
-    void fileDataChanged(const QPixmap& readData);
+    void imageLoaded(const QPixmap& readData);
 
 signals:
-    void navDockClicked(const QString path);
+    void treeViewClicked(const QString path);
 };
 
 #endif // NAVDOCKWIDGET_H

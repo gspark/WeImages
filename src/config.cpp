@@ -6,7 +6,7 @@
 
 #include <QSettings>
 
-ConfigIni::ConfigIni() : pathFile("cryptool.ini"), settings(new QSettings(pathFile, QSettings::IniFormat)) {
+ConfigIni::ConfigIni() : pathFile("WeImages.ini"), settings(new QSettings(pathFile, QSettings::IniFormat)) {
 //    Qt5
 //    settings->setIniCodec("UTF-8");
 }

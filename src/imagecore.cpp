@@ -13,9 +13,9 @@
 
 #include "logger/Logger.h"
 
-ImageCore::ImageCore(QObject *parent) : QObject(parent)
+ImageCore::ImageCore(QObject* parent) : QObject(parent)
 {
-// Set allocation limit to 8 GiB on Qt6
+    // Set allocation limit to 8 GiB on Qt6
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     QImageReader::setAllocationLimit(8192);
 #endif
@@ -26,8 +26,7 @@ ImageCore::ImageCore(QObject *parent) : QObject(parent)
         });
 }
 
-
-void ImageCore::loadFile(const QString& fileName)
+void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
 {
     QString sanitaryFileName = fileName;
 
@@ -42,51 +41,42 @@ void ImageCore::loadFile(const QString& fileName)
     //check if cached already before loading the long way
   
     auto* cachedPixmap = new QPixmap();
-    if (QPixmapCache::find(sanitaryFileName, cachedPixmap) &&
-        !cachedPixmap->isNull())
+    if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
     {
         ReadData readData = {
             *cachedPixmap,
-            fileInfo,
-            cachedPixmap->size()
+            fileInfo
         };
         loadPixmap(readData, true);
     }
     else
     {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        loadFutureWatcher.setFuture(QtConcurrent::run(this, &ImageCore::readFile, sanitaryFileName, false));
+        loadFutureWatcher.setFuture(QtConcurrent::run(this, &ImageCore::readFile, fileInfo.absoluteFilePath(), false, targetSize));
 #else
-        loadFutureWatcher.setFuture(QtConcurrent::run(&ImageCore::readFile, this, sanitaryFileName, false));
+        loadFutureWatcher.setFuture(QtConcurrent::run(&ImageCore::readFile, this, fileInfo.absoluteFilePath(), false, targetSize));
 #endif
     }
     delete cachedPixmap;
 }
 
 
-ImageCore::ReadData ImageCore::readFile(const QString &fileName, bool forCache)
+ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, const QSize& targetSize)
 {
-    return readFileSize(fileName, forCache, QSize());
-}
-
-ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCache, const QSize& targetSize)
-{
-    LOG_INFO << "ImageCore::readFile " << fileName;
+    LOG_INFO << "ImageCore::readFile " << fileName << " QSize: " << targetSize;
     QFileInfo fileInfo(fileName);
     auto* cachedPixmap = new QPixmap();
-    if (QPixmapCache::find(fileName, cachedPixmap) && !cachedPixmap->isNull())
+    QString sanitaryFileName = fileName;
+    if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
     {
         ReadData readData = {
             *cachedPixmap,
-            fileInfo,
-            cachedPixmap->size()
+            fileInfo
         };
         return readData;
     }
-    LOG_INFO << "fileInfo::absoluteFilePath " << fileInfo.absoluteFilePath();
 
     QPixmap readPixmap;
-    QSize size;
 
     if (fileInfo.suffix() == "dat") {
         // wechat picture
@@ -103,10 +93,9 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
         if (targetSize.isValid())
         {
             readPixmap = readPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            size = readPixmap.size();
         }
         LOG_INFO << " loadFromData time: " << GetTickCount() - start;
-        delete imageData;
+        delete[] imageData;
     }
     else {
         QImageReader imageReader;
@@ -125,7 +114,7 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
             // Render vectors into a high resolution
             QIcon icon;
             icon.addFile(fileName);
-            readPixmap = icon.pixmap(48);
+            readPixmap = icon.pixmap(ICON_WIDE);
             // If this fails, try reading the normal way so that a proper error message is given
             if (readPixmap.isNull())
                 readPixmap = QPixmap::fromImageReader(&imageReader);
@@ -136,14 +125,12 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
             readPixmap = QPixmap::fromImageReader(&imageReader);
             LOG_INFO << " QPixmap::fromImageReader time: " << GetTickCount() - start;
         }
-        size = imageReader.size();
     }
 
     ReadData readData = {
         readPixmap,
         //QFileInfo(imageFileName),
-        fileInfo,
-        size,
+        fileInfo
     };
     if (forCache)
     {
@@ -151,6 +138,11 @@ ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCac
     }
     return readData;
 }
+
+//ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCache, const QSize& targetSize)
+//{
+//
+//}
 
 void ImageCore::loadPixmap(const ReadData& readData, bool fromCache)
 {
@@ -160,7 +152,7 @@ void ImageCore::loadPixmap(const ReadData& readData, bool fromCache)
     // If this image isnt originally from the cache, add it to the cache
     if (!fromCache)
         addToCache(readData);
-    emit fileDataChanged(readData.pixmap);
+    emit imageLoaded(readData.pixmap);
 }
 
 void ImageCore::addToCache(const ReadData &readData)
@@ -168,11 +160,42 @@ void ImageCore::addToCache(const ReadData &readData)
     if (readData.pixmap.isNull()) {
         return;
     }
-    QPixmapCache::insert(readData.fileInfo.absoluteFilePath(), readData.pixmap);
+    QPixmapCache::insert(readData.fileInfo.absoluteFilePath().append("_%1x%2").arg(readData.pixmap.width()).arg(readData.pixmap.height()), readData.pixmap);
+}
 
-//    auto *size = new qint64(readData.fileInfo.size());
-//    qvApp->setPreviouslyRecordedFileSize(readData.fileInfo.absoluteFilePath(), size);
-//    qvApp->setPreviouslyRecordedImageSize(readData.fileInfo.absoluteFilePath(), new QSize(readData.size));
+bool ImageCore::isImageFile(const QFileInfo& fileInfo)
+{
+    if (fileInfo.suffix() == "dat" && fileInfo.baseName().length() == 32)
+    {
+        // wechat picture
+        return true;
+    }
+    QMimeDatabase db;
+    QMimeType mime = db.mimeTypeForFile(fileInfo);
+    if (mime.name().startsWith("image/"))
+    {
+        return true;
+    }
+    return false;
+}
+
+QStringList ImageCore::imageFileNames()
+{
+    QStringList names;
+    QMimeDatabase db;
+    QList<QMimeType> mimeList = db.allMimeTypes();
+    foreach(const QMimeType & mime, mimeList) {
+        if (mime.name().startsWith(QStringLiteral("image/"))) {
+            names << mime.preferredSuffix();
+            if (!mime.preferredSuffix().isNull() && !mime.preferredSuffix().isEmpty())
+            {
+                names << "*." + mime.preferredSuffix();
+            }
+        }
+    }
+    // wechat
+    names << "????????????????????????????????.dat";
+    return names;
 }
 
 BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) {
@@ -184,10 +207,9 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) 
     BYTE byPNG2 = 0x50;
 
     HANDLE hDatFile = INVALID_HANDLE_VALUE;
-//    HANDLE hImageFile = INVALID_HANDLE_VALUE;
 
-//    QString imageFile(imageFileName);
     BYTE* datBuf = new BYTE[fileSize];
+    BYTE* tmpBuf = new BYTE[64 * 1024];
     do
     {
         hDatFile = CreateFile(datFileName.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -195,19 +217,18 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) 
             break;
 
         // 读取内容前2个字节
-        BYTE byBuf[64*1024] = { 0 };
         DWORD dwReadLen = 0;
-        BOOL bRet = ReadFile(hDatFile, byBuf, 2, &dwReadLen, NULL);
+        BOOL bRet = ReadFile(hDatFile, tmpBuf, 2, &dwReadLen, NULL);
         if (!bRet || 2 != dwReadLen)
             break;
 
         // 开始异或判断
-        BYTE byJ1 = byJPG1 ^ byBuf[0];
-        BYTE byJ2 = byJPG2 ^ byBuf[1];
-        BYTE byG1 = byGIF1 ^ byBuf[0];
-        BYTE byG2 = byGIF2 ^ byBuf[1];
-        BYTE byP1 = byPNG1 ^ byBuf[0];
-        BYTE byP2 = byPNG2 ^ byBuf[1];
+        BYTE byJ1 = byJPG1 ^ tmpBuf[0];
+        BYTE byJ2 = byJPG2 ^ tmpBuf[1];
+        BYTE byG1 = byGIF1 ^ tmpBuf[0];
+        BYTE byG2 = byGIF2 ^ tmpBuf[1];
+        BYTE byP1 = byPNG1 ^ tmpBuf[0];
+        BYTE byP2 = byPNG2 ^ tmpBuf[1];
 
         // 判断异或值
         BYTE byXOR = 0;
@@ -239,15 +260,15 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) 
         do
         {
             dwReadLen = 0;
-            bRet = ReadFile(hDatFile, byBuf, 64 * 1024, &dwReadLen, NULL);
+            bRet = ReadFile(hDatFile, tmpBuf, 64 * 1024, &dwReadLen, NULL);
             if (!bRet)
                 break;
 
-            XOR(byBuf, dwReadLen, byXOR);
+            XOR(tmpBuf, dwReadLen, byXOR);
 
 //            bRet = WriteFile(hImageFile, byBuf, dwReadLen, &dwWriteLen, NULL);
 
-            memcpy(datBuf + index, byBuf, dwReadLen);
+            memcpy(datBuf + index, tmpBuf, dwReadLen);
             index += dwReadLen;
 //            if (!bRet || dwReadLen != dwWriteLen)
             if (!bRet)
@@ -256,17 +277,13 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) 
         } while (dwReadLen == 64*1024);
     } while (FALSE);
 
+    delete[] tmpBuf;
+
     if (INVALID_HANDLE_VALUE != hDatFile)
     {
         CloseHandle(hDatFile);
         hDatFile = INVALID_HANDLE_VALUE;
     }
-
-//    if (INVALID_HANDLE_VALUE != hImageFile)
-//    {
-//        CloseHandle(hImageFile);
-//        hImageFile = INVALID_HANDLE_VALUE;
-//    }
     return datBuf;
 }
 

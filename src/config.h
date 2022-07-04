@@ -9,18 +9,15 @@
 #include <QString>
 #include <QVariant>
 
-#define CONFIG_GROUP_MAIN_WIN    "MainWidget"
-#define CONFIG_GROUP_FILE_DOCK   "FileDock"
-#define CONFIG_GROUP_NAV_DOCK    "NavDock"
-#define CONFIG_GROUP_WINDOW     "Window"
-#define CONFIG_WIN_GEOMETRY     "Geometry"
-#define CONFIG_WIN_STATE        "WindowState"
-#define CONFIG_DOCK_HIDE        "hide"
-#define CONFIG_TAB_INDEX        "index"
-#define ITEM_DEFAULT_HEIGHT     (30)
-
-#define THUMBNAIL_HEIGHT 96
-#define THUMBNAIL_WIDE 112
+//#define CONFIG_GROUP_MAIN_WIN    "MainWidget"
+//#define CONFIG_GROUP_FILE_DOCK   "FileDock"
+//#define CONFIG_GROUP_NAV_DOCK    "NavDock"
+//#define CONFIG_GROUP_WINDOW     "MainView/size"
+//#define CONFIG_WIN_GEOMETRY     "Geometry"
+//#define CONFIG_WIN_STATE        "WindowState"
+//#define CONFIG_DOCK_HIDE        "hide"
+//#define CONFIG_TAB_INDEX        "index"
+//#define ITEM_DEFAULT_HEIGHT     (30)
 
 QT_BEGIN_NAMESPACE
 class QSettings;
