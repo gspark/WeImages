@@ -1,4 +1,4 @@
-#include "itemdelegate.h"
+#include "thumbnailDelegate.h"
 
 #include <QPainter>
 #include <QStyledItemDelegate>
@@ -10,33 +10,35 @@
 #include <QFileSystemModel>
 #include <QFileInfo>
 #include <QFileIconProvider>
+#include <QRadioButton>
+#include <QGraphicsColorizeEffect>
 //#include <QtConcurrent/QtConcurrentRun>
 
+#include "thumbnailData.h"
 #include "../filelistmodel/filefilterproxymodel.h"
 #include "../config.h"
+#include "../imagecore.h"
 #include "../logger/Logger.h"
-#include "itemdef.h"
 
 
-ItemDelegate::ItemDelegate(ImageCore* imageCore, QObject* parent) :
+ThumbnailDelegate::ThumbnailDelegate(ImageCore* imageCore, QObject* parent) :
     QStyledItemDelegate(parent)
 {
     this->imageCore = imageCore;
 }
 
-ItemDelegate::~ItemDelegate()
+ThumbnailDelegate::~ThumbnailDelegate()
 {
 
 }
 
-void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
     if (!index.isValid())
     {
         return;
     }
-    //FileFilterProxyModel* model = (FileFilterProxyModel*)index.model();
-    //QFileInfo fileInfo = model->fileInfo(index);
+
     QVariant variant = index.data(Qt::UserRole + 3);
     if (variant.isNull())
     {
@@ -46,9 +48,6 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
 
     painter->save();
 
-    // 用来在视图中画一个item
-    QStyleOptionViewItem viewOption(option);
-
     QRectF rect;
     rect.setX(option.rect.x());
     rect.setY(option.rect.y());
@@ -56,7 +55,7 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     rect.setHeight(option.rect.height() - 1);
 
     //QPainterPath画圆角矩形
-    const qreal radius = 3;
+    const qreal radius = 2;
     QPainterPath path;
     path.moveTo(rect.topRight() - QPointF(radius, 0));
     path.lineTo(rect.topLeft() + QPointF(radius, 0));
@@ -68,13 +67,7 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     path.lineTo(rect.topRight() + QPointF(0, radius));
     path.quadTo(rect.topRight(), rect.topRight() + QPointF(-radius, -0));
 
-    if (option.state.testFlag(QStyle::State_Selected))
-    {
-        painter->setPen(QPen(Qt::blue));
-        painter->setBrush(QColor(229, 241, 255));
-        painter->drawPath(path);
-    }
-    else if (option.state.testFlag(QStyle::State_MouseOver))
+    if (option.state.testFlag(QStyle::State_MouseOver))
     {
         painter->setPen(QPen(Qt::green));
         painter->setBrush(Qt::NoBrush);
@@ -86,35 +79,18 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
         painter->drawPath(path);
     }
 
-    //画圆圈
-    // QRect circle = QRect(NameRect.right(), rect.top() + 10, 10, 10);
-    //painter->setBrush(Qt::blue);
-    //painter->setPen(QPen(Qt::blue));
-    //painter->drawEllipse(circle);
-
-    // 绘制电话
-    //QRect telRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 10, 20);
-    //painter->setPen(QPen(Qt::gray));
-    //painter->setFont(QFont("Times", 10));
-    //painter->drawText(telRect, Qt::AlignLeft, data.tel); 
-
-    //画按钮
+    //绘制按钮
+    QStyleOptionButton cbOpt;
+    QRect buttonRect(rect.left() + 10, rect.top() + 4, 20, 20);
+    cbOpt.rect = buttonRect;
+    Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
+   
+    cbOpt.state |= checkStat == Qt::CheckState::Checked ? QStyle::State_On : QStyle::State_Off;
+    if (data.isWeChatImage)
     {
-        //左边距10
-        QStyleOptionButton cbOpt;
-        QRect checboxRec(rect.left() + 10, rect.top() + 4, 20, 20);
-        cbOpt.rect = checboxRec;
-        Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
-        if (checkStat == Qt::CheckState::Checked)
-        {
-            cbOpt.state |= QStyle::State_On;
-        }
-        else
-        {
-            cbOpt.state |= QStyle::State_Off;
-        }
-        QApplication::style()->drawControl(QStyle::CE_RadioButton, &cbOpt, painter);
+        cbOpt.state |= QStyle::State_Enabled;
     }
+    QApplication::style()->drawControl(QStyle::CE_RadioButton, &cbOpt, painter, option.widget);
 
     // 绘制缩略图
     //LOG_INFO << "thumbnail.width " << thumbnail.width() << " thumbnail.height " << thumbnail.height();
@@ -130,26 +106,43 @@ void ItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, 
     QRect NameRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 30, 20);
     painter->setPen(QPen(Qt::black));
     painter->setFont(QFont("Fixedsys", 12));
-    painter->drawText(NameRect, Qt::AlignLeft, data.fullName);
+    painter->drawText(NameRect, Qt::AlignLeft, data.fileName);
     //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
     painter->restore();
 }
 
-QSize ItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
+QSize ThumbnailDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
     return QSize(THUMBNAIL_WIDE + 4, THUMBNAIL_HEIGHT + 100);
 }
 
-bool ItemDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index)
+QWidget* ThumbnailDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
+    // 内容不可编辑
+    return nullptr;
+}
+
+bool ThumbnailDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index)
+{
+    QVariant variant = index.data(Qt::UserRole + 3);
+    if (variant.isNull())
+    {
+        return false;
+    }
+    ThumbnailData data = variant.value<ThumbnailData>();
+    if (!data.isWeChatImage)
+    {
+        return false;
+    }
+
     QRect rect = option.rect;
 
-    // 对应上面画的checkbox的retc
-    QRect checboxRec(rect.left() + 10, rect.top() + 4, 20, 20);
+    // 对应上面paint画的的button
+    QRect buttonRect(rect.left() + 10, rect.top() + 4, 20, 20);
 
     // 按钮点击事件；
     QMouseEvent* mevent = static_cast<QMouseEvent*>(event);
-    if (checboxRec.contains(mevent->pos()) && event->type() == QEvent::MouseButtonPress)
+    if (buttonRect.contains(mevent->pos()) && event->type() == QEvent::MouseButtonPress)
     {
         Qt::CheckState checked = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
         model->setData(index, checked == Qt::CheckState::Checked ? Qt::CheckState::Unchecked : Qt::CheckState::Checked, Qt::CheckStateRole);

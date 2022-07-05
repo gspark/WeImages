@@ -19,7 +19,7 @@
 class QToolBar;
 class QListView;
 class QTableView;
-class ItemDelegate;
+class ThumbnailDelegate;
 class QStandardItemModel;
 class QFileSystemModel;
 class QVBoxLayout;
@@ -67,7 +67,7 @@ private:
     QListView* thumbnailView;
 
     // 委托
-    ItemDelegate* m_delegate;
+    ThumbnailDelegate* m_delegate;
 
     mutable std::recursive_mutex _fileListAndCurrentDirMutex;
 
@@ -84,11 +84,13 @@ private:
 
     void updateCurrentPath(const QString& dir);
 
-    void setThumbnailView(const QString& dir, bool initModel = false);
+    void setThumbnailView(const QString& dir, bool readPixmap = true);
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
     FileViewType fileViewType;
+
+    QString currentDirPath;
 
     QList<QFileInfo> getFileInfoList(const QString& currentDirPath);
  

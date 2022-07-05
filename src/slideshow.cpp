@@ -21,7 +21,7 @@ Slideshow::Slideshow(ImageCore* imageCore, ImageSwitcher* imageSwitcher, QWidget
     ui->label->setMaximumHeight(rec.height() - 100);
 
     //ui->label->setPixmap(imageSwitcher->getImage().fullAbsolutePath);
-    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->getImage().fullAbsolutePath, true, QSize());
+    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->getImage().absoluteFilePath, true, QSize());
     ui->label->setPixmap(readData.pixmap);
 
     ui->toolButtonNext->setDefaultAction(ui->actionImage_suivante);
@@ -44,12 +44,12 @@ Slideshow::~Slideshow()
 
 void Slideshow::nextImage() {
 
-    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().fullAbsolutePath, true, QSize(this->width() - 2, this->height() - 2));
+    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().absoluteFilePath, true, QSize(this->width() - 2, this->height() - 2));
     ui->label->setPixmap(readData.pixmap);
 }
 
 void Slideshow::prevImage() {
-    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().fullAbsolutePath, true, QSize(this->width() - 2, this->height() - 2));
+    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().absoluteFilePath, true, QSize(this->width() - 2, this->height() - 2));
     ui->label->setPixmap(readData.pixmap);
 }
 

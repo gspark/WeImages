@@ -5,7 +5,7 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QtDebug>
-#include "../delegate/itemdef.h"
+#include "../delegate/thumbnailData.h"
 
 class ImageSwitcher
 {

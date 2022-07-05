@@ -2,7 +2,5 @@
     <qresource prefix="/">
         <file>minus.png</file>
         <file>up.png</file>
-        <file>LEFTw-01.png</file>
-        <file>RIGHTw-01.png</file>
     </qresource>
 </RCC>

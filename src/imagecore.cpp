@@ -179,6 +179,16 @@ bool ImageCore::isImageFile(const QFileInfo& fileInfo)
     return false;
 }
 
+bool ImageCore::isWeChatImage(const QString& extension, const QString& fileName)
+{
+    if (extension == "dat" && fileName.length() == 36)
+    {
+        // wechat
+        return true;
+    }
+    return false;
+}
+
 QStringList ImageCore::imageFileNames()
 {
     QStringList names;

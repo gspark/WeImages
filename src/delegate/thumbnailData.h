@@ -6,10 +6,11 @@
 #include <QFileInfo>
 
 struct ThumbnailData{
-    QString fullName;
-    QString fullAbsolutePath;
+    QString fileName;
+    QString absoluteFilePath;
     QString extension;
     QPixmap thumbnail;
+    bool isWeChatImage;
     //QFileInfo fileInfo;
 };
 

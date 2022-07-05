@@ -1,8 +1,8 @@
 #include "filewidget.h"
 #include "config.h"
 #include "filelistmodel/filefilterproxymodel.h"
-#include "delegate/itemdelegate.h"
-#include "delegate/itemdef.h"
+#include "delegate/thumbnailDelegate.h"
+#include "delegate/thumbnailData.h"
 #include "logger/Logger.h"
 #include "slideshow.h"
 
@@ -11,9 +11,7 @@
 #include <QVBoxLayout>
 #include <QSizePolicy>
 #include <QFileIconProvider>
-#include <QDesktopServices>
 #include <QIcon>
-#include <QUrl>
 #include <QToolBar>
 #include <QListView>
 #include <QTableView>
@@ -89,6 +87,16 @@ void FileWidget::initTableView()
     tableView = new QTableView;
     tableView->verticalHeader()->setVisible(false);
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // 单选
+    tableView->setSelectionMode(QAbstractItemView::NoSelection);
+    // 不可以编辑
+    tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    // 形状
+    //tableView->setFrameShape(QTableView::NoFrame);
+    // 栅格
+    tableView->setShowGrid(false);
+    // 排序
+    tableView->setSortingEnabled(true);
     tableView->setContentsMargins(0, 0, 0, 0);
     tableView->setModel(proxyModel);
     // view settings
@@ -105,7 +113,7 @@ void FileWidget::initThumbnailView()
     {
         return;
     }
-    m_delegate = new ItemDelegate(this->imageCore, this);
+    m_delegate = new ThumbnailDelegate(this->imageCore, this);
 
     thumbnailView = new QListView(this);
     thumbnailView->setContentsMargins(0, 0, 0, 0);
@@ -159,9 +167,11 @@ void FileWidget::updateCurrentPath(const QString& dir)
     }
 }
 
-void FileWidget::setThumbnailView(const QString& dir, bool initModel)
+void FileWidget::setThumbnailView(const QString& dir, bool readPixmap)
 {
-    LOG_INFO << " setThumbnailView dir: " << dir << " initModel:" << initModel;
+    LOG_INFO << " setThumbnailView dir: " << dir << " initModel:" << readPixmap;
+    currentDirPath = dir;
+
     if (nullptr == thumbnailModel)
     {
         thumbnailModel = new QStandardItemModel;
@@ -177,17 +187,18 @@ void FileWidget::setThumbnailView(const QString& dir, bool initModel)
     }
     int itemRow = 0;
     //QThreadPool::globalInstance()->setMaxThreadCount(12);
-    std::function<QStandardItem* (const QFileInfo&)> getThumbnailItem = [this, &initModel](const QFileInfo& fileInfo) -> QStandardItem*
+    std::function<QStandardItem* (const QFileInfo&)> getThumbnailItem = [this, &readPixmap](const QFileInfo& fileInfo) -> QStandardItem*
     {
         //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
         auto thumbnailItem = new QStandardItem();
-        thumbnailItem->setEditable(false);
+        //thumbnailItem->setEditable(false);
         auto itemData = new ThumbnailData;;
-        itemData->fullName = fileInfo.fileName();
-        itemData->fullAbsolutePath = fileInfo.absoluteFilePath();
+        itemData->fileName = fileInfo.fileName();
+        itemData->absoluteFilePath = fileInfo.absoluteFilePath();
         itemData->extension = fileInfo.suffix();
+        itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->extension, itemData->fileName);
 
-        if (initModel == false)
+        if (readPixmap)
         {
             if (this->imageCore->isImageFile(fileInfo))
             {
@@ -267,7 +278,7 @@ void FileWidget::selectAll()
                 break;
             }
             ThumbnailData data = variant.value<ThumbnailData>();
-            if (data.extension == "dat" && data.fullName.length() == 36)
+            if (data.extension == "dat" && data.fileName.length() == 36)
             {
                 // wechat
                 item->setCheckState(Qt::CheckState::Checked);
@@ -300,10 +311,11 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 
     if (this->thumbnailModel == nullptr || this->thumbnailModel->rowCount() <= 0)
     {
-        setThumbnailView(info.path(), true);
+        setThumbnailView(info.path(), false);
     }
-    else {
-        setThumbnailView(info.path());
+    else if (info.path() != this->currentDirPath)
+    {
+        setThumbnailView(info.path(), this->fileViewType == FileViewType::Thumbnail);
     }
 
     QStandardItem* item = nullptr;
@@ -316,7 +328,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
             break;
         }
         ThumbnailData data = variant.value<ThumbnailData>();
-        if (data.fullAbsolutePath == info.absoluteFilePath())
+        if (data.absoluteFilePath == info.absoluteFilePath())
         {
             break;
         }

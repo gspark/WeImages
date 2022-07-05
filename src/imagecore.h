@@ -58,6 +58,9 @@ public:
     bool isImageFile(const QFileInfo& fileInfo);
 
     QStringList imageFileNames();
+
+    bool isWeChatImage(const QString& extension, const QString& fileName);
+
 signals:
     void imageLoaded(const QPixmap& readData);
 private:
