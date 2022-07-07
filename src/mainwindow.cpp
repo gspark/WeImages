@@ -67,7 +67,7 @@ void MainWindow::setupWidgets() {
     statusBar()->showMessage(tr("Ready"));
 
     // central widget
-    auto *widget = new FileWidget(this->fileModel, this->imageCore, this);
+    auto *widget = new FileWidget(/*this->fileModel, */this->imageCore, this);
     connectShortcut(widget);
 
     //mainLayout->addWidget(widget);

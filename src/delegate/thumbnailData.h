@@ -11,6 +11,8 @@ struct ThumbnailData{
     QString extension;
     QPixmap thumbnail;
     bool isWeChatImage;
+    QDateTime lastModified;
+    qint64 size;
     //QFileInfo fileInfo;
 };
 

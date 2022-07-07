@@ -21,7 +21,7 @@ class QListView;
 class QTableView;
 class ThumbnailDelegate;
 class QStandardItemModel;
-class QFileSystemModel;
+class FileListModel;
 class QVBoxLayout;
 class QAbstractItemDelegate;
 class QStackedWidget;
@@ -29,7 +29,8 @@ class FileFilterProxyModel;
 class QAbstractItemModel;
 class ThumbnailData;
 class QStandardItem;
-
+class CheckBoxDelegate;
+class QFileIconProvider;
 
 enum FileViewType {
     Table, Thumbnail
@@ -39,7 +40,7 @@ class FileWidget : public QWidget {
     Q_OBJECT
 public:
   
-    explicit FileWidget(QAbstractItemModel* model, ImageCore* imageCore, QWidget* parent = nullptr);
+    explicit FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWidget* parent = nullptr);
 
     ~FileWidget() override;
 
@@ -55,7 +56,11 @@ private:
 
     QStandardItemModel* thumbnailModel;
 
-    QFileSystemModel* fileSystemMode;
+    QFileIconProvider* ensureIconProvider();
+
+    QFileIconProvider* m_iconProvider;
+
+    FileListModel* fileListModel;
 
     FileFilterProxyModel* proxyModel;
 
@@ -67,7 +72,9 @@ private:
     QListView* thumbnailView;
 
     // 委托
-    ThumbnailDelegate* m_delegate;
+    ThumbnailDelegate* thumbnailDelegate;
+
+    CheckBoxDelegate* checkBoxDelegate;
 
     mutable std::recursive_mutex _fileListAndCurrentDirMutex;
 
@@ -82,17 +89,21 @@ private:
 
     void cdPath(const QString& path);
 
-    void updateCurrentPath(const QString& dir);
+    void updateCurrentPath(const QString& path);
 
     void setThumbnailView(const QString& dir, bool readPixmap = true);
+
+    void initListModel(const QString& dir, bool readPixmap = true);
 
     void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
 
     FileViewType fileViewType;
 
-    QString currentDirPath;
+    QString currentPath;
 
-    QList<QFileInfo> getFileInfoList(const QString& currentDirPath);
+    QList<QFileInfo> getRowItemList(const QString& currentDirPath);
+
+    QList<QStandardItem*> getRowItemList();
  
 private slots:
 
