@@ -3,13 +3,13 @@
 #include "imagecore.h"
 #include "filelistmodel/filefilterproxymodel.h"
 
-#include <QSortFilterProxyModel>
 #include <QStyleFactory>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QTreeView>
 #include <QHeaderView>
+#include <QFileSystemModel>
 
 
 NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)

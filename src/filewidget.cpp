@@ -34,14 +34,12 @@ FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWid
     this->m_iconProvider = nullptr;
     this->thumbnailModel = nullptr;
     this->fileListModel = nullptr;
+    this->proxyModel = nullptr;
 
     this->fileViewType = ::FileViewType::Table;
 
     //// init file model
     //fileSystemMode = (QFileSystemModel*)model;
-
-    //proxyModel = new FileFilterProxyModel;
-    //proxyModel->setSourceModel(fileSystemMode);
 
     // widget init
     setupToolBar();
@@ -111,12 +109,13 @@ void FileWidget::initTableView()
     {
         return;
     }
-    checkBoxDelegate = new CheckBoxDelegate;
+    checkBoxDelegate = new CheckBoxDelegate(this);
     tableView = new QTableView;
     tableView->verticalHeader()->setVisible(false);
+    // 单行选中
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    // 单选
-    tableView->setSelectionMode(QAbstractItemView::NoSelection);
+    //// 单选
+    //tableView->setSelectionMode(QAbstractItemView::NoSelection);
     // 不可以编辑
     tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     // 形状
@@ -126,13 +125,11 @@ void FileWidget::initTableView()
     // 排序
     tableView->setSortingEnabled(true);
     tableView->setContentsMargins(0, 0, 0, 0);
-    //tableView->setModel(proxyModel);
+ 
     // view settings
     //tableView->setStyle(QStyleFactory::create("Fusion"));
 
-    //tableView->setItemDelegate(checkBoxDelegate);
-
-    connect(tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
+    tableView->setItemDelegate(checkBoxDelegate);
 
     connect(tableView, &QTableView::doubleClicked, this, &FileWidget::onFileDoubleClicked);
 }
@@ -191,7 +188,9 @@ void FileWidget::updateCurrentPath(const QString& path)
     else if (FileViewType::Thumbnail == fileViewType)
     {
         DWORD start = GetTickCount();
+        thumbnailView->setUpdatesEnabled(false);
         setThumbnailView(path);
+        thumbnailView->setUpdatesEnabled(true);
         LOG_INFO << " thumbnailView append rows time: " << GetTickCount() - start;
         stackedWidget->setCurrentIndex(1);
     }
@@ -201,10 +200,17 @@ void FileWidget::updateCurrentPath(const QString& path)
 void FileWidget::initListModel(const QString& path, bool readPixmap) {
     if (nullptr == fileListModel)
     {
-        fileListModel = new FileListModel;
+        fileListModel = new FileListModel(ensureIconProvider());
         fileListModel->setColumnCount(NumberOfColumns);
-        thumbnailView->setModel(this->fileListModel);
-        tableView->setModel(this->fileListModel);
+
+        proxyModel = new FileFilterProxyModel;
+        proxyModel->setSourceModel(fileListModel);
+
+        thumbnailView->setModel(proxyModel);
+        tableView->setModel(proxyModel);
+        // need after setModel 
+        connect(thumbnailView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
+        connect(tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
     }
     else {
         fileListModel->clear();
@@ -225,6 +231,7 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
     {
         auto checkBoxItem = new QStandardItem();
         checkBoxItem->setData(QVariant::fromValue(fileInfo), Qt::UserRole + 3);
+        checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
         fileListModel->setItem(itemRow, CheckBoxColumn, checkBoxItem);
 
         auto fileNameItem = new QStandardItem();
@@ -299,28 +306,34 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
 
     QFuture<QStandardItem*> future = QtConcurrent::mapped(itemInfos, getThumbnailItem);
     future.waitForFinished();
-    QList<QStandardItem*> items = future.results();
+    //QList<QStandardItem*> items = future.results();
 
-    //thumbnailView->setUpdatesEnabled(false);
-    //
     //for (auto &item : items)
     //{
     //    //thumbnailModel->appendRow(item);
     //    thumbnailModel->appendRow(item);
     //}
-
-    //thumbnailView->setUpdatesEnabled(true);
 }
 
 void FileWidget::onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) {
+    if (selected == deselected)
+    {
+        return;
+    }
     QModelIndexList selectList = selected.indexes();
     if (selectList.isEmpty())
     {
         return;
     }
 
-    QFileInfo info = proxyModel->fileInfo(selectList.last());
-
+    QFileInfo info = proxyModel->fileInfo(FileViewType::Table == fileViewType ? selectList.last().siblingAtColumn(0) : selectList.last());
+    LOG_INFO << " onSelectionChanged fileInfo: " << info;
+    if (FileViewType::Thumbnail == fileViewType)
+    {
+        info = this->fileListModel->fileInfo(selectList.last());
+        LOG_INFO << " fileListModel fileInfo: " << info;
+    }
+ 
     if (info.isFile()) {
         this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N,THUMBNAIL_HEIGHT_N));
     }
@@ -373,7 +386,8 @@ void FileWidget::selectAll()
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 {
     QString target;
-    QFileInfo info = proxyModel->fileInfo(index);
+    
+    QFileInfo info = this->proxyModel->fileInfo(index.siblingAtColumn(0));
     LOG_INFO << " onFileDoubleClicked info: " << info;
     if (info.isShortcut()) {
         // handle shortcut

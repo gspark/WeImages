@@ -1,11 +1,14 @@
 #include "filefilterproxymodel.h"
+#include "filelistmodel.h"
 
 #include <QDateTime>
+#include <QFileSystemModel>
 
-FileFilterProxyModel::FileFilterProxyModel()
+
+FileFilterProxyModel::FileFilterProxyModel(int sortColumn)
 {
     useFilter = false;
-    sortColumn = 0;
+    this->sortColumn = sortColumn;
 }
 
 // filter
@@ -15,15 +18,16 @@ void FileFilterProxyModel::enableFilter(bool enable)
 }
 
 // only keep dir
-bool FileFilterProxyModel::filterAcceptsRow(int sourceRow,
-                                              const QModelIndex &sourceParent) const
+bool FileFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
     if (!useFilter)
         return true;
 
     QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
-    QFileInfo info = model->fileInfo(index);
+    //QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    //QFileInfo info = model->fileInfo(index);
+
+    QFileInfo info = this->fileInfoBySource(index);
 
     if (info.fileName() == "." || info.fileName() == "..") {
         return false;
@@ -35,20 +39,22 @@ bool FileFilterProxyModel::filterAcceptsRow(int sourceRow,
 // sort
 void FileFilterProxyModel::sort(int column, Qt::SortOrder order)
 {
-//    qDebug() << QString("sort %1").arg(column);
     sortColumn = column;
     QSortFilterProxyModel::sort(column, order);
 }
 
-bool FileFilterProxyModel::nameCompare(const QModelIndex &source_left, const QModelIndex &source_right) const
+bool FileFilterProxyModel::nameCompare(const QModelIndex& source_left, const QModelIndex& source_right) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
-    QFileInfo leftInfo = model->fileInfo(source_left);
-    QFileInfo rightInfo = model->fileInfo(source_right);
+    //QFileSystemModel* model = (QFileSystemModel*)sourceModel();
+    //QFileInfo leftInfo = model->fileInfo(source_left);
+    //QFileInfo rightInfo = model->fileInfo(source_right);
+
+    QFileInfo leftInfo = this->fileInfoBySource(source_left);
+    QFileInfo rightInfo = this->fileInfoBySource(source_right);
 
     // place drives before directories
-    bool l = model->type(source_left) == "Drive";
-    bool r = model->type(source_right) == "Drive";
+    bool l = this->type(source_left) == "Drive";
+    bool r = this->type(source_right) == "Drive";
     if (l ^ r)
         return l;
     if (l && r)     // both Drive
@@ -63,30 +69,35 @@ bool FileFilterProxyModel::nameCompare(const QModelIndex &source_left, const QMo
     return naturalCompare.compare(leftInfo.fileName(), rightInfo.fileName()) < 0;
 }
 
-bool FileFilterProxyModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
+bool FileFilterProxyModel::lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
-    QFileInfo leftInfo = model->fileInfo(source_left);
-    QFileInfo rightInfo = model->fileInfo(source_right);
+    //QFileSystemModel* model = (QFileSystemModel*)sourceModel();
+    //QFileInfo leftInfo = model->fileInfo(source_left);
+    //QFileInfo rightInfo = model->fileInfo(source_right);
+
+    QFileInfo leftInfo = this->fileInfoBySource(source_left);
+    QFileInfo rightInfo = this->fileInfoBySource(source_right);
 
     switch (sortColumn) {
-    case 0: {
+    case 0:
+    case 1: {
         return nameCompare(source_left, source_right);
     }
-    case 1: {
+    case 2: {
         qint64 sizeDifference = leftInfo.size() - rightInfo.size();
         if (sizeDifference == 0)    // use nameCompare if the left equal to the right
             return nameCompare(source_left, source_right);
 
         return sizeDifference < 0;
     }
-    case 2: {
-        int compare = naturalCompare.compare(model->type(source_left), model->type(source_right));
-        if (compare == 0)
-            return nameCompare(source_left, source_right);
+    //case 2: {
+    //    //int compare = naturalCompare.compare(model->type(source_left), model->type(source_right));
+    //    int compare = naturalCompare.compare(this->type(source_left), this->type(source_right));
+    //    if (compare == 0)
+    //        return nameCompare(source_left, source_right);
 
-        return compare < 0;
-    }
+    //    return compare < 0;
+    //}
     case 3: {
         if (leftInfo.lastModified() == rightInfo.lastModified())
             return nameCompare(source_left, source_right);
@@ -98,31 +109,81 @@ bool FileFilterProxyModel::lessThan(const QModelIndex &source_left, const QModel
     }
 }
 
-// QFileSystemModel
-QFileSystemModel *FileFilterProxyModel::srcModel()
+QString FileFilterProxyModel::type(const QModelIndex& index) const
 {
-    return (QFileSystemModel *)sourceModel();
+    auto* model = dynamic_cast<QFileSystemModel*>(sourceModel());
+    if (model)
+    {
+        return model->type(index);
+    }
+
+    auto* lmodel = dynamic_cast<FileListModel*>(sourceModel());
+    if (lmodel)
+    {
+        return lmodel->type(index);
+    }
+    return "";
 }
 
-QFileIconProvider *FileFilterProxyModel::iconProvider() const
-{
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+//// QFileSystemModel
+//QFileSystemModel *FileFilterProxyModel::srcModel()
+//{
+//    return (QFileSystemModel *)sourceModel();
+//}
 
-    return (QFileIconProvider*)model->iconProvider();
-}
+//QFileIconProvider *FileFilterProxyModel::iconProvider() const
+//{
+//    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+//
+//    return (QFileIconProvider*)model->iconProvider();
+//}
 
 // return proxy model's index
-QModelIndex FileFilterProxyModel::proxyIndex(const QString &path, int column) const
+QModelIndex FileFilterProxyModel::proxyIndex(const QString& path, int column) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
-    model->setRootPath(path);
-    return mapFromSource(model->index(path, column));
+    auto* model = dynamic_cast<QFileSystemModel*>(sourceModel());
+    if (model)
+    {
+        // TODO
+        // model->setRootPath(path);
+        return mapFromSource(model->index(path, column));
+    }
+
+    auto* lmodel = dynamic_cast<FileListModel*>(sourceModel());
+    if (lmodel)
+    {
+        mapFromSource(lmodel->index(path, column));
+    }
+    return QModelIndex();
 }
 
 // pIndex is proxy model's index
-QFileInfo FileFilterProxyModel::fileInfo(const QModelIndex &pIndex) const
+QFileInfo FileFilterProxyModel::fileInfo(const QModelIndex& index) const
 {
-    QFileSystemModel *model = (QFileSystemModel *)sourceModel();
+    auto* model = dynamic_cast<QFileSystemModel*>(sourceModel());
+    if (model)
+    {
+        return model->fileInfo(mapToSource(index));
+    }
+    auto* lmodel = dynamic_cast<FileListModel*>(sourceModel());
+    if (lmodel)
+    {
+        return lmodel->fileInfo(mapToSource(index));
+    }
+    return QFileInfo();
+}
 
-    return model->fileInfo(mapToSource(pIndex));
+QFileInfo FileFilterProxyModel::fileInfoBySource(const QModelIndex& index) const
+{
+    auto* model = dynamic_cast<QFileSystemModel*>(sourceModel());
+    if (model)
+    {
+        return model->fileInfo(index);
+    }
+    auto* lmodel = dynamic_cast<FileListModel*>(sourceModel());
+    if (lmodel)
+    {
+        return lmodel->fileInfo(index.siblingAtColumn(0));
+    }
+    return QFileInfo();
 }

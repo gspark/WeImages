@@ -1,8 +1,10 @@
 #include "checkBoxDelegate.h"
+#include "..\filelistmodel\filelistmodel.h"
 
 #include <QCheckBox>
 #include <QApplication>
 #include <QMouseEvent>
+#include <QPainter>
 
 CheckBoxDelegate::CheckBoxDelegate(QObject* parent /*= 0*/)
 {
@@ -22,22 +24,22 @@ void CheckBoxDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         viewOption.state = viewOption.state ^ QStyle::State_HasFocus;
 
     QStyledItemDelegate::paint(painter, viewOption, index);
+  
+    //if (index.column() == CheckBoxColumn)
+    //{
+    //    Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
 
-    if (index.column() == 0)
-    {
-        bool data = index.model()->data(index, Qt::UserRole).toBool();
+    //    QStyleOptionButton checkBoxStyle;
+    //    checkBoxStyle.state = checkStat == Qt::CheckState::Checked ? QStyle::State_On : QStyle::State_Off;
+    //    checkBoxStyle.state |= QStyle::State_Enabled;
+    //    checkBoxStyle.iconSize = QSize(20, 20);
+    //    checkBoxStyle.rect = option.rect;
 
-        QStyleOptionButton checkBoxStyle;
-        checkBoxStyle.state = data ? QStyle::State_On : QStyle::State_Off;
-        checkBoxStyle.state |= QStyle::State_Enabled;
-        checkBoxStyle.iconSize = QSize(20, 20);
-        checkBoxStyle.rect = option.rect;
-
-        QCheckBox checkBox;
-        checkBoxStyle.iconSize = QSize(20, 20);
-        checkBoxStyle.rect = option.rect;
-        QApplication::style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &checkBoxStyle, painter, &checkBox);
-    }
+    //    QCheckBox checkBox;
+    //    checkBoxStyle.iconSize = QSize(20, 20);
+    //    checkBoxStyle.rect = option.rect;
+    //    QApplication::style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &checkBoxStyle, painter, &checkBox);
+    //}
 }
 
 bool CheckBoxDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index)
@@ -47,10 +49,10 @@ bool CheckBoxDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, con
     QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
     if (event->type() == QEvent::MouseButtonPress && decorationRect.contains(mouseEvent->pos()))
     {
-        if (index.column() == 0)
+        if (index.column() == CheckBoxColumn)
         {
-            bool data = model->data(index, Qt::UserRole).toBool();
-            model->setData(index, !data, Qt::UserRole);
+            Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
+            model->setData(index, checkStat == Qt::CheckState::Checked ? Qt::CheckState::Unchecked : Qt::CheckState::Checked, Qt::CheckStateRole);
         }
     }
 

@@ -144,8 +144,8 @@ bool ThumbnailDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, co
     QMouseEvent* mevent = static_cast<QMouseEvent*>(event);
     if (buttonRect.contains(mevent->pos()) && event->type() == QEvent::MouseButtonPress)
     {
-        Qt::CheckState checked = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
-        model->setData(index, checked == Qt::CheckState::Checked ? Qt::CheckState::Unchecked : Qt::CheckState::Checked, Qt::CheckStateRole);
+        Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
+        model->setData(index, checkStat == Qt::CheckState::Checked ? Qt::CheckState::Unchecked : Qt::CheckState::Checked, Qt::CheckStateRole);
         model->dataChanged(index, index);
         //此处可以添加自定义信号，即使checbox点击信号；
     }
