@@ -95,7 +95,7 @@ private:
 
     void initListModel(const QString& dir, bool readPixmap = true);
 
-    void onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
+    void onCurrentChanged(const QModelIndex& current, const QModelIndex& previous);
 
     FileViewType fileViewType;
 

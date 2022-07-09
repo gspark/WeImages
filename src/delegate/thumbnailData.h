@@ -6,14 +6,14 @@
 #include <QFileInfo>
 
 struct ThumbnailData{
-    QString fileName;
-    QString absoluteFilePath;
-    QString extension;
-    QPixmap thumbnail;
+    //QString fileName;
+    //QString absoluteFilePath;
+    //QString extension;
+    //QDateTime lastModified;
+    //qint64 size;
     bool isWeChatImage;
-    QDateTime lastModified;
-    qint64 size;
-    //QFileInfo fileInfo;
+    QPixmap thumbnail;
+    QFileInfo fileInfo;
 };
 
 // 自定义数据类型需注册才能放入QVariant

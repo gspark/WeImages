@@ -36,7 +36,7 @@ FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWid
     this->fileListModel = nullptr;
     this->proxyModel = nullptr;
 
-    this->fileViewType = ::FileViewType::Table;
+    this->fileViewType = FileViewType::Table;
 
     //// init file model
     //fileSystemMode = (QFileSystemModel*)model;
@@ -209,8 +209,8 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
         // need after setModel 
-        connect(thumbnailView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
-        connect(tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &FileWidget::onSelectionChanged);
+        connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+        connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
     }
     else {
         fileListModel->clear();
@@ -275,14 +275,15 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
         }
         auto fileInfo = variant.value<QFileInfo>();
 
-        auto itemData = new ThumbnailData;;
-        itemData->fileName = fileInfo.fileName();
-        itemData->absoluteFilePath = fileInfo.absoluteFilePath();
-        itemData->extension = fileInfo.suffix();
+        auto itemData = new ThumbnailData;
+        itemData->fileInfo = fileInfo;
+        //itemData->fileName = fileInfo.fileName();
+        //itemData->absoluteFilePath = fileInfo.absoluteFilePath();
+        //itemData->extension = fileInfo.suffix();
         //itemData->size = fileInfo.size();
         //itemData->lastModified = fileInfo.lastModified();
 
-        itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->extension, itemData->fileName);
+        itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->fileInfo.suffix(), itemData->fileInfo.fileName());
 
         if (readPixmap)
         {
@@ -315,24 +316,25 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
     //}
 }
 
-void FileWidget::onSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) {
-    if (selected == deselected)
-    {
-        return;
-    }
-    QModelIndexList selectList = selected.indexes();
-    if (selectList.isEmpty())
-    {
-        return;
-    }
+void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
+    //if (selected == deselected)
+    //{
+    //    return;
+    //}
+    //QModelIndexList selectList = selected.indexes();
+    //if (selectList.isEmpty())
+    //{
+    //    return;
+    //}
+    LOG_INFO << " onCurrentChanged current QModelIndex: " << current;
 
-    QFileInfo info = proxyModel->fileInfo(FileViewType::Table == fileViewType ? selectList.last().siblingAtColumn(0) : selectList.last());
+    QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
     LOG_INFO << " onSelectionChanged fileInfo: " << info;
-    if (FileViewType::Thumbnail == fileViewType)
-    {
-        info = this->fileListModel->fileInfo(selectList.last());
-        LOG_INFO << " fileListModel fileInfo: " << info;
-    }
+    //if (FileViewType::Thumbnail == fileViewType)
+    //{
+    //    info = current.data(Qt::UserRole + 3).value<QFileInfo>();
+    //    LOG_INFO << " fileListModel fileInfo: " << info;
+    //}
  
     if (info.isFile()) {
         this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N,THUMBNAIL_HEIGHT_N));
@@ -374,7 +376,7 @@ void FileWidget::selectAll()
                 break;
             }
             ThumbnailData data = variant.value<ThumbnailData>();
-            if (data.extension == "dat" && data.fileName.length() == 36)
+            if (data.fileInfo.suffix() == "dat" && data.fileInfo.fileName().length() == 36)
             {
                 // wechat
                 item->setCheckState(Qt::CheckState::Checked);
@@ -425,7 +427,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
             break;
         }
         ThumbnailData data = variant.value<ThumbnailData>();
-        if (data.absoluteFilePath == info.absoluteFilePath())
+        if (data.fileInfo.absoluteFilePath() == info.absoluteFilePath())
         {
             break;
         }

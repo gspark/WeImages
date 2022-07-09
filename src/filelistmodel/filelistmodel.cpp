@@ -71,13 +71,17 @@ QFileInfo FileListModel::fileInfo(const QModelIndex& index) const
     }
    
     QStandardItem* item = this->itemFromIndex(index);
-
-    QVariant variant = index.data(Qt::UserRole + 3);
     if (item)
     {
-        variant = item->data(Qt::UserRole + 3);
+        QVariant variant = item->data(Qt::UserRole + 3);
+        if (variant.canConvert<ThumbnailData>())
+        {
+            auto thumbnailData = variant.value<ThumbnailData>();
+            return thumbnailData.fileInfo;
+        }
+        return variant.value<QFileInfo>();
     }
-    return variant.value<QFileInfo>();
+    return QFileInfo();
 }
 
 QString FileListModel::type(const QModelIndex& index) const

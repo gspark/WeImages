@@ -34,6 +34,7 @@ ThumbnailDelegate::~ThumbnailDelegate()
 
 void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
+    LOG_INFO << " paint QModelIndex: " << index;
     if (!index.isValid())
     {
         return;
@@ -106,7 +107,7 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
     QRect NameRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 30, 20);
     painter->setPen(QPen(Qt::black));
     painter->setFont(QFont("Fixedsys", 12));
-    painter->drawText(NameRect, Qt::AlignLeft, data.fileName);
+    painter->drawText(NameRect, Qt::AlignLeft, data.fileInfo.fileName());
     //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
     painter->restore();
 }
