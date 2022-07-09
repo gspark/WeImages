@@ -153,6 +153,7 @@ void FileWidget::initThumbnailView()
     thumbnailView->setViewMode(QListView::IconMode);
     thumbnailView->setResizeMode(QListView::Adjust);
     thumbnailView->setMovement(QListView::Static);
+    connect(thumbnailView, &QListView::doubleClicked, this, &FileWidget::onFileDoubleClicked);
 }
 
 void FileWidget::initWidgetLayout() {
@@ -256,7 +257,7 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
 
 void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
 {
-    LOG_INFO << " setThumbnailView dir: " << path << " initModel:" << readPixmap;
+    LOG_INFO << " setThumbnailView dir: " << path << " readPixmap:" << readPixmap;
 
     QList<QStandardItem*> itemInfos = getRowItemList();
     if (itemInfos.isEmpty())
@@ -316,31 +317,6 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
     //}
 }
 
-void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
-    //if (selected == deselected)
-    //{
-    //    return;
-    //}
-    //QModelIndexList selectList = selected.indexes();
-    //if (selectList.isEmpty())
-    //{
-    //    return;
-    //}
-    LOG_INFO << " onCurrentChanged current QModelIndex: " << current;
-
-    QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
-    LOG_INFO << " onSelectionChanged fileInfo: " << info;
-    //if (FileViewType::Thumbnail == fileViewType)
-    //{
-    //    info = current.data(Qt::UserRole + 3).value<QFileInfo>();
-    //    LOG_INFO << " fileListModel fileInfo: " << info;
-    //}
- 
-    if (info.isFile()) {
-        this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N,THUMBNAIL_HEIGHT_N));
-    }
-}
-
 void FileWidget::thumbnail()
 {
     if (this->fileViewType != FileViewType::Thumbnail)
@@ -385,6 +361,15 @@ void FileWidget::selectAll()
     }
 }
 
+void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
+    QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
+    LOG_INFO << " onCurrentChanged fileInfo: " << info;
+    if (info.isFile()) {
+        // TODO background
+        this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
+    }
+}
+
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 {
     QString target;
@@ -401,39 +386,26 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
     else {
         target = info.absoluteFilePath();
     }
-
     // If the file is a symlink, this function returns true if the target is a directory (not the symlink)
     if (info.isDir()) {
         cdPath(target);
         return;
     }
-
-    if (this->fileListModel == nullptr || this->fileListModel->rowCount() <= 0)
+    //if (this->fileListModel == nullptr || this->fileListModel->rowCount() <= 0)
+    //{
+    //    setThumbnailView(info.path(), false);
+    //}
+    //else if (info.path() != this->currentPath)
+    //{
+    //    setThumbnailView(info.path(), this->fileViewType == FileViewType::Thumbnail);
+    //}
+    
+    QStandardItem* item = proxyModel->itemFromIndex(index.siblingAtColumn(0));
+    if (nullptr == item)
     {
-        setThumbnailView(info.path(), false);
+        return;
     }
-    else if (info.path() != this->currentPath)
-    {
-        setThumbnailView(info.path(), this->fileViewType == FileViewType::Thumbnail);
-    }
-
-    QStandardItem* item = nullptr;
-    for( int r = 0; r < this->fileListModel->rowCount(); ++r)
-    {
-        item = fileListModel->item(r);
-        QVariant variant = item->data(Qt::UserRole + 3);
-        if (variant.isNull())
-        {
-            break;
-        }
-        ThumbnailData data = variant.value<ThumbnailData>();
-        if (data.fileInfo.absoluteFilePath() == info.absoluteFilePath())
-        {
-            break;
-        }
-    }
-    auto* switcher = new ImageSwitcher(item, fileListModel);
-    Slideshow* slideshow = new Slideshow(this->imageCore, switcher);
+    Slideshow* slideshow = new Slideshow(this->imageCore, new ImageSwitcher(item, fileListModel));
     slideshow->show();
 }
 

@@ -187,3 +187,18 @@ QFileInfo FileFilterProxyModel::fileInfoBySource(const QModelIndex& index) const
     }
     return QFileInfo();
 }
+
+QStandardItem* FileFilterProxyModel::itemFromIndex(const QModelIndex& index) const
+{
+    auto* model = dynamic_cast<QFileSystemModel*>(sourceModel());
+    if (model)
+    {
+        return nullptr;
+    }
+    auto* lmodel = dynamic_cast<FileListModel*>(sourceModel());
+    if (lmodel)
+    {
+        return lmodel->itemFromIndex(mapToSource(index));
+    }
+    return nullptr;
+}

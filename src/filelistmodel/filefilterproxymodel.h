@@ -4,6 +4,7 @@
 #include <QSortFilterProxyModel>
 #include <QCollator>
 #include <QFileInfo>
+#include <QStandardItem>
 
 class QFileIconProvider;
 class QFileSystemModel;
@@ -18,12 +19,12 @@ public:
     void enableFilter(bool enable);
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
-    //// QFileSystemModel
-    //QFileSystemModel* srcModel();
-    //QFileIconProvider* iconProvider() const;
     QModelIndex proxyIndex(const QString& path, int column = 0) const;
     QFileInfo fileInfo(const QModelIndex& index) const;
     QFileInfo fileInfoBySource(const QModelIndex& index) const;
+
+    QStandardItem* itemFromIndex(const QModelIndex& index) const;
+
     inline QString fileName(const QModelIndex& index) const;
 
 protected:

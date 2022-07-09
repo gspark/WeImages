@@ -34,7 +34,7 @@ ThumbnailDelegate::~ThumbnailDelegate()
 
 void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-    LOG_INFO << " paint QModelIndex: " << index;
+    //LOG_INFO << " paint QModelIndex: " << index;
     if (!index.isValid())
     {
         return;

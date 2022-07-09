@@ -4,22 +4,21 @@
 
 #include <QStandardItem>
 #include <QStandardItemModel>
-#include <QtDebug>
-#include "../delegate/thumbnailData.h"
+#include <QFileInfo>
 
 class ImageSwitcher
 {
 public:
     ImageSwitcher(QStandardItem *image, QStandardItemModel *model);
-    ThumbnailData getImage();
+    QFileInfo getImage();
 
 private:
     QStandardItem *m_image;
     QStandardItemModel *m_model;
 
 public slots:
-    ThumbnailData imagePrecedente();
-    ThumbnailData imageSuivante();
+    QFileInfo imagePrecedente();
+    QFileInfo imageSuivante();
 };
 
 #endif // IMAGESWITCHER_H
