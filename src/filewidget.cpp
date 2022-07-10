@@ -29,7 +29,7 @@
 
 
 FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
- 
+
     this->imageCore = imageCore;
     this->m_iconProvider = nullptr;
     this->thumbnailModel = nullptr;
@@ -125,7 +125,7 @@ void FileWidget::initTableView()
     // 排序
     tableView->setSortingEnabled(true);
     tableView->setContentsMargins(0, 0, 0, 0);
- 
+
     // view settings
     //tableView->setStyle(QStyleFactory::create("Fusion"));
 
@@ -337,26 +337,19 @@ void FileWidget::detail()
 
 void FileWidget::selectAll()
 {
-    if (this->fileViewType == FileViewType::Thumbnail)
+    if (nullptr == fileListModel)
     {
-        if (nullptr == fileListModel)
+        return;
+    }
+
+    for (int r = 0; r < this->fileListModel->rowCount(); ++r)
+    {
+        auto item = fileListModel->item(r);
+        auto fileInfo = fileListModel->fileInfo(item);
+        if (fileInfo.suffix() == "dat" && fileInfo.fileName().length() == 36)
         {
-            return;
-        }
-        for (int r = 0; r < this->fileListModel->rowCount(); ++r)
-        {
-            auto item = fileListModel->item(r);
-            QVariant variant = item->data(Qt::UserRole + 3);
-            if (variant.isNull())
-            {
-                break;
-            }
-            ThumbnailData data = variant.value<ThumbnailData>();
-            if (data.fileInfo.suffix() == "dat" && data.fileInfo.fileName().length() == 36)
-            {
-                // wechat
-                item->setCheckState(Qt::CheckState::Checked);
-            }
+            // wechat
+            item->setCheckState(Qt::CheckState::Checked);
         }
     }
 }
@@ -373,7 +366,7 @@ void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex&
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 {
     QString target;
-    
+
     QFileInfo info = this->proxyModel->fileInfo(index.siblingAtColumn(0));
     LOG_INFO << " onFileDoubleClicked info: " << info;
     if (info.isShortcut()) {
@@ -399,7 +392,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
     //{
     //    setThumbnailView(info.path(), this->fileViewType == FileViewType::Thumbnail);
     //}
-    
+
     QStandardItem* item = proxyModel->itemFromIndex(index.siblingAtColumn(0));
     if (nullptr == item)
     {
@@ -419,8 +412,8 @@ QList<QFileInfo> FileWidget::getRowItemList(const QString& currentDirPath)
     QList<QFileInfo> list;
     //{
         //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-        list = QDir{ currentDirPath }.entryInfoList(
-            QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System, QDir::NoSort);
+    list = QDir{ currentDirPath }.entryInfoList(
+        QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System, QDir::NoSort);
     //}
     return list;
 

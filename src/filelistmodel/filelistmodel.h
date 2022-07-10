@@ -30,6 +30,8 @@ public:
 
     QFileInfo fileInfo(const QModelIndex& index) const;
 
+    QFileInfo fileInfo(const QStandardItem* item) const;
+
     QString type(const QModelIndex& index) const;
 
     QModelIndex index(const QString& path, int column = 0) const;

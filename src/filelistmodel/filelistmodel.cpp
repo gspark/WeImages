@@ -84,6 +84,25 @@ QFileInfo FileListModel::fileInfo(const QModelIndex& index) const
     return QFileInfo();
 }
 
+QFileInfo FileListModel::fileInfo(const QStandardItem* item) const
+{
+    if (item == nullptr)
+    {
+        return QFileInfo();
+    }
+    QVariant variant = item->data(Qt::UserRole + 3);
+    if (variant.isNull())
+    {
+        return QFileInfo();
+    }
+    if (variant.canConvert<ThumbnailData>())
+    {
+        auto data = variant.value<ThumbnailData>();
+        return data.fileInfo;
+    }
+    return variant.value<QFileInfo>();
+}
+
 QString FileListModel::type(const QModelIndex& index) const
 {
     return this->m_iconProvider->type(this->fileInfo(index));
