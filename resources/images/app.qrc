@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>minus.png</file>
-        <file>up.png</file>
+        <file>font/fa-regular-400.ttf</file>
     </qresource>
 </RCC>

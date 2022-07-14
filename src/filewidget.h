@@ -78,6 +78,10 @@ private:
 
     mutable std::recursive_mutex _fileListAndCurrentDirMutex;
 
+    FileViewType fileViewType;
+
+    QString currentPath;
+
     // widget init
     void initListView();
 
@@ -97,9 +101,7 @@ private:
 
     void onCurrentChanged(const QModelIndex& current, const QModelIndex& previous);
 
-    FileViewType fileViewType;
-
-    QString currentPath;
+    void initIconFont();
 
     QList<QFileInfo> getRowItemList(const QString& currentDirPath);
 
@@ -114,6 +116,8 @@ private slots:
     void detail();
 
     void selectAll();
+
+    void exportSelected();
 
 signals:
     void onCdDir(const QString path);

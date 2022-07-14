@@ -9,6 +9,8 @@
 #include "filelistmodel/filelistmodel.h"
 #include "filesystemhelperfunctions.h"
 
+#include "iconhelper.h"
+
 #include <QApplication>
 #include <QStyleFactory>
 #include <QVBoxLayout>
@@ -41,6 +43,8 @@ FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWid
     //// init file model
     //fileSystemMode = (QFileSystemModel*)model;
 
+    initIconFont();
+
     // widget init
     setupToolBar();
     tableView = nullptr;
@@ -70,18 +74,24 @@ FileWidget::~FileWidget() {
 
 void FileWidget::setupToolBar() {
     toolBar = new QToolBar;
+    //toolBar->setStyleSheet("background-color:rgb(0, 200, 0);}");
     toolBar->setContentsMargins(0, 0, 0, 0);
 
-    QAction* detailAction = toolBar->addAction(QIcon(QLatin1String(":/up.png")), tr("detail"));
+    IconHelper::StyleColor styleColor;
+
+    QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail"));
     connect(detailAction, &QAction::triggered, this, &FileWidget::detail);
 
-    QAction* thumbnailAction = toolBar->addAction(QIcon(QLatin1String(":/minus.png")), tr("thumbnail"));
+    QAction* thumbnailAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xe196, 16, 16, 16)), tr("thumbnail"));
     connect(thumbnailAction, &QAction::triggered, this, &FileWidget::thumbnail);
 
     toolBar->addSeparator();
 
-    QAction* selectAllAction = toolBar->addAction(QIcon(QLatin1String(":/minus.png")), tr("select all"));
+    QAction* selectAllAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xf058, 16, 16, 16)), tr("select all"));
     connect(selectAllAction, &QAction::triggered, this, &FileWidget::selectAll);
+
+    QAction* exportAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xf08b, 16, 16, 16)), tr("export"));
+    connect(exportAction, &QAction::triggered, this, &FileWidget::exportSelected);
 
     auto listGroup = new QActionGroup(this);
     listGroup->addAction(detailAction);
@@ -159,10 +169,12 @@ void FileWidget::initThumbnailView()
 void FileWidget::initWidgetLayout() {
     auto vLayout = new QVBoxLayout(this);
     vLayout->setContentsMargins(0, 0, 0, 0);
+    vLayout->setSpacing(0);
     this->setContentsMargins(0, 0, 0, 0);
     this->setLayout(vLayout);
 
     stackedWidget = new QStackedWidget(this);
+    stackedWidget->setContentsMargins(0, 0, 0, 0);
     stackedWidget->addWidget(tableView);
     stackedWidget->addWidget(thumbnailView);
 
@@ -354,6 +366,11 @@ void FileWidget::selectAll()
     }
 }
 
+void FileWidget::exportSelected()
+{
+
+}
+
 void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
     QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
     LOG_INFO << " onCurrentChanged fileInfo: " << info;
@@ -361,6 +378,11 @@ void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex&
         // TODO background
         this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
     }
+}
+
+void FileWidget::initIconFont()
+{
+    IconHelper::setIconFontIndex(2);
 }
 
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)
