@@ -363,7 +363,27 @@ void FileWidget::selectAll()
 
 void FileWidget::exportSelected()
 {
-
+    QList<QFileInfo> selects;
+    for (int r = 0; r < this->fileListModel->rowCount(); ++r)
+    {
+        auto item = fileListModel->item(r);
+       
+        if (item->checkState() == Qt::CheckState::Checked)
+        {
+            selects.append(fileListModel->fileInfo(item));
+        }
+    }
+    if (!selects.isEmpty())
+    {
+        QString directory = QFileDialog::getExistingDirectory(this, tr("open directory"), QDir::currentPath());
+        QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
+            const ImageCore::ReadData& readData = this->imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
+            QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
+            LOG_INFO << " export file: " << file;
+            return readData.pixmap.save(file);
+            });
+        future.waitForFinished();
+    }
 }
 
 void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
@@ -402,11 +422,6 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
         return;
     }
 
-    //QStandardItem* item = proxyModel->itemFromIndex(index.siblingAtColumn(0));
-    //if (nullptr == item)
-    //{
-    //    return;
-    //}
     Slideshow* slideshow = new Slideshow(this->imageCore, new ImageSwitcher(clicked, this->proxyModel));
     slideshow->show();
 }

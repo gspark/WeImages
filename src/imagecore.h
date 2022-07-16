@@ -38,6 +38,7 @@ public:
     {
         QPixmap pixmap;
         QFileInfo fileInfo;
+        QString suffix;
     };
 
     explicit ImageCore(QObject* parent = nullptr);
@@ -66,7 +67,7 @@ signals:
 private:
     QFutureWatcher<ReadData> loadFutureWatcher;
 
-    BYTE* datConverImage(const QString& datFileName, long long fileSize);
+    BYTE* datConverImage(const QString& datFileName, long long fileSize, QString* extension);
 
     void XOR(BYTE* v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR);
 };

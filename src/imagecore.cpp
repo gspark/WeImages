@@ -77,13 +77,12 @@ ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, 
     }
 
     QPixmap readPixmap;
-
-    if (fileInfo.suffix() == "dat") {
+    QString extension = fileInfo.suffix();
+    if (isWeChatImage(fileInfo.suffix(), fileInfo.fileName())) {
         // wechat picture
         DWORD start = GetTickCount();
-        BYTE* imageData = datConverImage(fileName, fileInfo.size());
+        BYTE* imageData = datConverImage(fileName, fileInfo.size(), &extension);
         LOG_INFO << " datConverImage time: " << GetTickCount() - start;
-
         start = GetTickCount();
         if (readPixmap.loadFromData(imageData, fileInfo.size())) {
             if (readPixmap.isNull()) {
@@ -130,7 +129,8 @@ ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, 
     ReadData readData = {
         readPixmap,
         //QFileInfo(imageFileName),
-        fileInfo
+        fileInfo,
+        extension
     };
     if (forCache)
     {
@@ -208,7 +208,7 @@ QStringList ImageCore::imageFileNames()
     return names;
 }
 
-BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) {
+BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize, QString* extension) {
     BYTE byJPG1 = 0xFF;
     BYTE byJPG2 = 0xD8;
     BYTE byGIF1 = 0x47;
@@ -246,16 +246,19 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize) 
         {
 //            imageFile += ".jpg";
             byXOR = byJ1;
+            *extension = "jpg";
         }
         else if (byG1 == byG2)
         {
 //            imageFile += ".gif";
             byXOR = byG1;
+            *extension = "gif";
         }
         else if (byP1 == byP2)
         {
 //            imageFile += ".png";
             byXOR = byP1;
+            *extension = "png";
         }
         else
             break;
