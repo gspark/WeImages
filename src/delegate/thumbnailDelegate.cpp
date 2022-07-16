@@ -18,6 +18,7 @@
 #include "../filelistmodel/filefilterproxymodel.h"
 #include "../config.h"
 #include "../imagecore.h"
+#include "../filesystemhelperfunctions.h"
 #include "../logger/Logger.h"
 
 
@@ -82,7 +83,7 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
 
     //绘制按钮
     QStyleOptionButton cbOpt;
-    QRect buttonRect(rect.left() + 10, rect.top() + 4, 20, 20);
+    QRect buttonRect(rect.left() + 10, rect.top() + 4, 16, 16);
     cbOpt.rect = buttonRect;
     Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
    
@@ -104,11 +105,24 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
     //LOG_INFO << "pixmapRect.left " << pixmapRect.left() << " pixmapRect.top " << pixmapRect.top();
 
     //绘制名字
-    QRect NameRect = QRect(rect.left() + 10, rect.bottom() - 25, rect.width() - 30, 20);
+    QRect nameRect = QRect(rect.left() + 8, rect.bottom() - 60, THUMBNAIL_WIDE - 4, 20);
     painter->setPen(QPen(Qt::black));
     painter->setFont(QFont("Fixedsys", 12));
-    painter->drawText(NameRect, Qt::AlignLeft, data.fileInfo.fileName());
+    painter->drawText(nameRect, Qt::AlignLeft, painter->fontMetrics().elidedText(data.fileInfo.fileName(), Qt::ElideRight, THUMBNAIL_WIDE - 4));
     //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
+
+    //绘制文件大小
+    QRect sizeRect = QRect(rect.left() + 8, rect.bottom() - 40, THUMBNAIL_WIDE - 4, 20);
+    painter->setPen(QPen(Qt::black));
+    painter->setFont(QFont("Fixedsys", 12));
+    painter->drawText(sizeRect, Qt::AlignLeft, fileSizeToString(data.fileInfo.size()));
+
+    //绘制文件日期
+    QRect dateRect = QRect(rect.left() + 8, rect.bottom() - 20, THUMBNAIL_WIDE - 4, 20);
+    painter->setPen(QPen(Qt::black));
+    painter->setFont(QFont("Fixedsys", 12));
+    painter->drawText(dateRect, Qt::AlignLeft, data.fileInfo.lastModified().toString("yyyy-MM-dd"));
+
     painter->restore();
 }
 

@@ -89,9 +89,11 @@ void NavDockWidget::treeViewInit()
     treeView->hideColumn(1); 
     treeView->hideColumn(2);
     treeView->hideColumn(3);
-
+ 
     // header settings
     treeView->header()->hide();
+    treeView->header()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
+    treeView->header()->setStretchLastSection(false);
 }
 
 
