@@ -65,11 +65,10 @@ FileWidget::~FileWidget() {
         delete checkBoxDelegate;
     }
     delete m_iconProvider;
-
-    //proxyModel->deleteLater();
+   
     tableView->deleteLater();
     thumbnailView->deleteLater();
-
+    proxyModel->deleteLater();
 }
 
 void FileWidget::setupToolBar() {
@@ -204,7 +203,7 @@ void FileWidget::updateCurrentPath(const QString& path)
         thumbnailView->setUpdatesEnabled(false);
         setThumbnailView(path);
         thumbnailView->setUpdatesEnabled(true);
-        LOG_INFO << " thumbnailView append rows time: " << GetTickCount() - start;
+        LOG_INFO << "thumbnailView append rows time: " << GetTickCount() - start;
         stackedWidget->setCurrentIndex(1);
     }
     currentPath = path;
@@ -221,6 +220,7 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
 
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
+        tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
         // need after setModel 
         connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
         connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
@@ -290,11 +290,6 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
 
         auto itemData = new ThumbnailData;
         itemData->fileInfo = fileInfo;
-        //itemData->fileName = fileInfo.fileName();
-        //itemData->absoluteFilePath = fileInfo.absoluteFilePath();
-        //itemData->extension = fileInfo.suffix();
-        //itemData->size = fileInfo.size();
-        //itemData->lastModified = fileInfo.lastModified();
 
         itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->fileInfo.suffix(), itemData->fileInfo.fileName());
 
@@ -388,8 +383,8 @@ void FileWidget::initIconFont()
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 {
     QString target;
-
-    QFileInfo info = this->proxyModel->fileInfo(index.siblingAtColumn(0));
+    QModelIndex clicked = index.siblingAtColumn(0);
+    QFileInfo info = this->proxyModel->fileInfo(clicked);
     LOG_INFO << " onFileDoubleClicked info: " << info;
     if (info.isShortcut()) {
         // handle shortcut
@@ -406,21 +401,13 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
         cdPath(target);
         return;
     }
-    //if (this->fileListModel == nullptr || this->fileListModel->rowCount() <= 0)
-    //{
-    //    setThumbnailView(info.path(), false);
-    //}
-    //else if (info.path() != this->currentPath)
-    //{
-    //    setThumbnailView(info.path(), this->fileViewType == FileViewType::Thumbnail);
-    //}
 
-    QStandardItem* item = proxyModel->itemFromIndex(index.siblingAtColumn(0));
-    if (nullptr == item)
-    {
-        return;
-    }
-    Slideshow* slideshow = new Slideshow(this->imageCore, new ImageSwitcher(item, fileListModel));
+    //QStandardItem* item = proxyModel->itemFromIndex(index.siblingAtColumn(0));
+    //if (nullptr == item)
+    //{
+    //    return;
+    //}
+    Slideshow* slideshow = new Slideshow(this->imageCore, new ImageSwitcher(clicked, this->proxyModel));
     slideshow->show();
 }
 

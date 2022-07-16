@@ -45,12 +45,12 @@ Slideshow::~Slideshow()
 
 void Slideshow::nextImage() {
 
-    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().absoluteFilePath(), true, QSize(this->width() - 2, this->height() - 2));
+    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->next().absoluteFilePath(), true, QSize(this->width() - 2, this->height() - 2));
     ui->label->setPixmap(readData.pixmap);
 }
 
 void Slideshow::prevImage() {
-    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->imagePrecedente().absoluteFilePath(), true, QSize(this->width() - 2, this->height() - 2));
+    const ImageCore::ReadData& readData = this->imageCore->readFile(imageSwitcher->previous().absoluteFilePath(), true, QSize(this->width() - 2, this->height() - 2));
     ui->label->setPixmap(readData.pixmap);
 }
 

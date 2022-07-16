@@ -1,24 +1,24 @@
 #ifndef IMAGESWITCHER_H
 #define IMAGESWITCHER_H
 
-
-#include <QStandardItem>
-#include <QStandardItemModel>
+#include "..\filelistmodel\filefilterproxymodel.h"
 #include <QFileInfo>
 
 class ImageSwitcher
 {
 public:
-    ImageSwitcher(QStandardItem *image, QStandardItemModel *model);
+    ImageSwitcher(const QModelIndex& current, const FileFilterProxyModel* model);
     QFileInfo getImage();
 
 private:
-    QStandardItem *m_image;
-    QStandardItemModel *m_model;
+    //QStandardItem *m_image;
+    const FileFilterProxyModel* m_model;
+
+    QModelIndex m_image;
 
 public slots:
-    QFileInfo imagePrecedente();
-    QFileInfo imageSuivante();
+    QFileInfo previous();
+    QFileInfo next();
 };
 
 #endif // IMAGESWITCHER_H
