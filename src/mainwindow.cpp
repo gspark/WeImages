@@ -49,16 +49,8 @@ void MainWindow::fileModelInit() {
 #if DISABLE_FILE_WATCHER
     fileModel->setOptions(QFileSystemModel::DontWatchForChanges);
 #endif
-
     fileModel->setRootPath("");
-    /*
-     * default QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs
-     * add QDir::System will show all shortcut(.lnk file) and system files
-     * add QDir::Hidden will show some files that not visible on Windows, these files may be modified by mistake.
-     */
-    //fileModel->setFilter(QDir::AllEntries | QDir::NoDot | QDir::AllDirs | QDir::System/* | QDir::Hidden*/);
     fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System | QDir::Hidden);
-    //fileModel->setNameFilters(QStringList() << "*.jpg" << "*.gif" << "*.png" << "*.dat");
     fileModel->setNameFilters(this->imageCore->imageFileNames());
     fileModel->setReadOnly(true);
 }

@@ -113,14 +113,10 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
 
     //绘制文件大小
     QRect sizeRect = QRect(rect.left() + 8, rect.bottom() - 40, THUMBNAIL_WIDE - 4, 20);
-    painter->setPen(QPen(Qt::black));
-    painter->setFont(QFont("Fixedsys", 12));
     painter->drawText(sizeRect, Qt::AlignLeft, fileSizeToString(data.fileInfo.size()));
 
     //绘制文件日期
     QRect dateRect = QRect(rect.left() + 8, rect.bottom() - 20, THUMBNAIL_WIDE - 4, 20);
-    painter->setPen(QPen(Qt::black));
-    painter->setFont(QFont("Fixedsys", 12));
     painter->drawText(dateRect, Qt::AlignLeft, data.fileInfo.lastModified().toString("yyyy-MM-dd"));
 
     painter->restore();

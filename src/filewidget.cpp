@@ -8,7 +8,6 @@
 #include "delegate/checkBoxDelegate.h"
 #include "filelistmodel/filelistmodel.h"
 #include "filesystemhelperfunctions.h"
-
 #include "iconhelper.h"
 
 #include <QApplication>
@@ -27,7 +26,6 @@
 #include <QtConcurrent/QtConcurrent>
 #include <functional>
 #include <QMimeType>
-
 
 
 FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
@@ -153,7 +151,7 @@ void FileWidget::initThumbnailView()
 
     thumbnailView = new QListView(this);
     thumbnailView->setContentsMargins(0, 0, 0, 0);
-    thumbnailView->setStyleSheet("background-color: transparent;border:1px solid #EFEFEF;");
+    //thumbnailView->setStyleSheet("background-color: transparent;border:1px solid #EFEFEF;");
     // 为视图设置委托
     thumbnailView->setItemDelegate(thumbnailDelegate);
     // 为视图设置控件间距
@@ -221,7 +219,7 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
         tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
-        // need after setModel 
+        // must after setModel 
         connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
         connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
     }
@@ -269,59 +267,42 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
 
 void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
 {
-    LOG_INFO << " setThumbnailView dir: " << path << " readPixmap:" << readPixmap;
+    LOG_INFO << "setThumbnailView path: " << path << " readPixmap:" << readPixmap;
 
     QList<QStandardItem*> itemInfos = getRowItemList();
     if (itemInfos.isEmpty())
     {
         return;
     }
-    int itemRow = 0;
-    //QThreadPool::globalInstance()->setMaxThreadCount(12);
-    std::function<QStandardItem* (QStandardItem*)> getThumbnailItem = [this, &readPixmap](QStandardItem* rowItem) -> QStandardItem*
-    {
-        auto thumbnailItem = rowItem;
-        QVariant variant = thumbnailItem->data(Qt::UserRole + 3);
-        if (variant.isNull())
+    QFuture<QStandardItem*> future = QtConcurrent::mapped(itemInfos, [this, &readPixmap](QStandardItem* rowItem) -> QStandardItem*
         {
-            return rowItem;
-        }
-        auto fileInfo = variant.value<QFileInfo>();
-
-        auto itemData = new ThumbnailData;
-        itemData->fileInfo = fileInfo;
-
-        itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->fileInfo.suffix(), itemData->fileInfo.fileName());
-
-        if (readPixmap)
-        {
-            if (this->imageCore->isImageFile(fileInfo))
+            QVariant variant = rowItem->data(Qt::UserRole + 3);
+            if (variant.isNull())
             {
-                //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-                ImageCore::ReadData image = imageCore->readFile(fileInfo.absoluteFilePath(), true);
-                itemData->thumbnail = image.pixmap;
+                return rowItem;
             }
-            else {
-                std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
-                //auto* iconProvider = (QFileIconProvider*)fileSystemMode->iconProvider();
-                auto icon = ensureIconProvider()->icon(fileInfo);
-                itemData->thumbnail = icon.pixmap(ICON_WIDE, ICON_HEIGHT);
+
+            auto itemData = new ThumbnailData;
+            itemData->fileInfo = variant.value<QFileInfo>();
+            itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->fileInfo.suffix(), itemData->fileInfo.fileName());
+
+            if (readPixmap)
+            {
+                if (this->imageCore->isImageFile(itemData->fileInfo))
+                {
+                    ImageCore::ReadData image = imageCore->readFile(itemData->fileInfo.absoluteFilePath(), true);
+                    itemData->thumbnail = image.pixmap;
+                }
+                else {
+                    std::lock_guard<std::recursive_mutex> locker(fileIconMutex);
+                    auto icon = ensureIconProvider()->icon(itemData->fileInfo);
+                    itemData->thumbnail = icon.pixmap(ICON_WIDE, ICON_HEIGHT);
+                }
             }
-        }
-
-        thumbnailItem->setData(QVariant::fromValue(*itemData), Qt::UserRole + 3);
-        return thumbnailItem;
-    };
-
-    QFuture<QStandardItem*> future = QtConcurrent::mapped(itemInfos, getThumbnailItem);
+            rowItem->setData(QVariant::fromValue(*itemData), Qt::UserRole + 3);
+            return rowItem;
+        });
     future.waitForFinished();
-    //QList<QStandardItem*> items = future.results();
-
-    //for (auto &item : items)
-    //{
-    //    //thumbnailModel->appendRow(item);
-    //    thumbnailModel->appendRow(item);
-    //}
 }
 
 void FileWidget::thumbnail()

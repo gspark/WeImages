@@ -76,7 +76,7 @@ private:
 
     CheckBoxDelegate* checkBoxDelegate;
 
-    mutable std::recursive_mutex _fileListAndCurrentDirMutex;
+    mutable std::recursive_mutex fileIconMutex;
 
     FileViewType fileViewType;
 
