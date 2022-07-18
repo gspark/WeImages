@@ -21,12 +21,13 @@ NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
     treeView = new QTreeView;
 
     thumbnail = new QLabel;
-    thumbnail->setBackgroundRole(QPalette::Base);
+    //thumbnail->setBackgroundRole(QPalette::Base);
     //thumbnail->setStyleSheet("QLabel{bkorder:1px solid rgb(0, 255, 0);}");
-    thumbnail->setGeometry(0, 0, -1, -1);
+    //thumbnail->setGeometry(0, 0, -1, -1);
     //thumbnail->setMinimumHeight(THUMBNAIL_HEIGHT);
     //thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     thumbnail->setAlignment(Qt::AlignCenter);
+    thumbnail->setVisible(false);
     //thumbnail->setScaledContents(true);
 
     //thumbnail->setFrameStyle(QFrame::WinPanel | QFrame::Raised);
@@ -145,5 +146,6 @@ void NavDockWidget::onCdDir(const QString path)
 void NavDockWidget::imageLoaded(const QPixmap &readData)
 {
     this->thumbnail->setPixmap(readData);
+    this->thumbnail->setVisible(true);
 }
 

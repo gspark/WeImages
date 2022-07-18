@@ -14,6 +14,16 @@ QFileInfo ImageSwitcher::getImage()
 }
 
 
+int ImageSwitcher::count()
+{
+    return m_model->rowCount();
+}
+
+int ImageSwitcher::currIndex()
+{
+    return m_image.row();
+}
+
 QFileInfo ImageSwitcher::previous() {
     if (m_image.row() <= 0) {
         m_image = m_model->index(m_model->rowCount() - 1, 0);

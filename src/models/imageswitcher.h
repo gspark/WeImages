@@ -16,6 +16,9 @@ private:
 
     QModelIndex m_image;
 
+public:
+    int count();
+    int currIndex();
 public slots:
     QFileInfo previous();
     QFileInfo next();

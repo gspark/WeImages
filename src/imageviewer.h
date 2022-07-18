@@ -51,6 +51,8 @@ private:
 
     void displayImage(QString absoluteFilePath);
 
+    double computeScaleWithView(const QPixmap& pixmap);
+
     void zoomInImage();
     void zoomOutImage();
     void extendImage();

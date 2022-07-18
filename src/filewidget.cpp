@@ -80,15 +80,15 @@ void FileWidget::setupToolBar() {
     QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail"));
     connect(detailAction, &QAction::triggered, this, &FileWidget::detail);
 
-    QAction* thumbnailAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xe196, 16, 16, 16)), tr("thumbnail"));
+    QAction* thumbnailAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 57750, 16, 16, 16)), tr("thumbnail"));
     connect(thumbnailAction, &QAction::triggered, this, &FileWidget::thumbnail);
 
     toolBar->addSeparator();
 
-    QAction* selectAllAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xf058, 16, 16, 16)), tr("select all"));
+    QAction* selectAllAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61528, 16, 16, 16)), tr("select all"));
     connect(selectAllAction, &QAction::triggered, this, &FileWidget::selectAll);
 
-    QAction* exportAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 0xf08b, 16, 16, 16)), tr("export"));
+    QAction* exportAction = toolBar->addAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("export"));
     connect(exportAction, &QAction::triggered, this, &FileWidget::exportSelected);
 
     auto listGroup = new QActionGroup(this);
