@@ -4,7 +4,8 @@
 #include "delegate/thumbnailDelegate.h"
 #include "delegate/thumbnailData.h"
 #include "logger/Logger.h"
-#include "slideshow.h"
+#include "imageViewer.h"
+#include "models/imageswitcher.h"
 #include "delegate/checkBoxDelegate.h"
 #include "filelistmodel/filelistmodel.h"
 #include "filesystemhelperfunctions.h"
@@ -403,7 +404,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
         return;
     }
 
-    Slideshow* slideshow = new Slideshow(this->imageCore, new ImageSwitcher(clicked, this->proxyModel));
+    ImageViewer* slideshow = new ImageViewer(this->imageCore, new ImageSwitcher(clicked, this->proxyModel));
     slideshow->show();
 }
 
