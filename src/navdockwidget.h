@@ -21,9 +21,6 @@ public:
 
     virtual QSize sizeHint() const;
 
-    void loadDockInfo();
-    void saveDockInfo();
-
 public slots:
     void onCdDir(const QString path);
 

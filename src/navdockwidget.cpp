@@ -36,7 +36,7 @@ NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
     vLayout->addWidget(thumbnail);
 
     this->setWidget(widget);
-    loadDockInfo();
+  
     connect(imageCore, &ImageCore::imageLoaded, this, &NavDockWidget::imageLoaded);
 }
 
@@ -90,40 +90,11 @@ void NavDockWidget::onTreeViewClicked(const QModelIndex &index)
     }
 }
 
-void NavDockWidget::loadDockInfo()
-{
-//    qDebug() << QString("loadDockInfo");
-
-//    QStringList dirList = readArraySettings(CONFIG_GROUP_NAV_DOCK);
-//    qDebug() << dirList;
-//    foreach (QString dir, dirList) {
-//        treeView->expand(proxyModel->proxyIndex(dir));
-//    }
-
-//    QVariant hidden = readSettings(CONFIG_GROUP_NAV_DOCK, CONFIG_DOCK_HIDE);
-//    if (hidden.isValid()) {
-//        setHidden(hidden.toBool());
-//    }
-}
-
-void NavDockWidget::saveDockInfo()
-{
-    QStringList dirList;
-    QModelIndex index = proxyModel->index(0, 0);
-    while (index.isValid()) {
-        if (treeView->isExpanded(index)) {
-            QFileInfo info = proxyModel->fileInfo(index);
-            if (info.fileName() != "." && info.fileName() != "..") {
-                dirList.append(info.absoluteFilePath());
-            }
-        }
-        index = treeView->indexBelow(index);
-    }
-}
-
 void NavDockWidget::onCdDir(const QString path)
 {
-    this->treeView->setCurrentIndex(this->proxyModel->proxyIndex(path));
+    QModelIndex index = this->proxyModel->proxyIndex(path);
+    this->treeView->setCurrentIndex(index);
+    this->treeView->scrollTo(index);
 }
 
 void NavDockWidget::imageLoaded(const QPixmap &readData)

@@ -33,7 +33,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     fileModelInit();
     setupMenuBar();
     setupWidgets();
-    connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::saveWindowInfo);
     loadWindowInfo();
 }
 
@@ -48,11 +47,10 @@ void MainWindow::fileModelInit() {
 #if DISABLE_FILE_WATCHER
     fileModel->setOptions(QFileSystemModel::DontWatchForChanges);
 #endif
-    //fileModel->setRootPath("");
+    fileModel->setRootPath("");
     fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System | QDir::Hidden);
     fileModel->setNameFilters(this->imageCore->imageFileNames());
     fileModel->setReadOnly(true);
-    fileModel->setRootPath("");
 }
 
 void MainWindow::initStatusBar()
@@ -85,7 +83,12 @@ void MainWindow::setupWidgets() {
     addDockWidget(Qt::LeftDockWidgetArea, navDock);
     connect(navDock, &NavDockWidget::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
     connect(widget, &FileWidget::onCdDir, navDock, &NavDockWidget::onCdDir);
-    connect(this, &MainWindow::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
+    connect(this, &MainWindow::onCdDir, widget, &FileWidget::onTreeViewClicked);
+    connect(this, &MainWindow::onCdDir, navDock, &NavDockWidget::onCdDir);
+    connect(widget, &FileWidget::onCdDir, this, &MainWindow::onCdDired);
+    connect(navDock, &NavDockWidget::treeViewClicked, this, &MainWindow::onCdDired);
+
+    connect(this, &MainWindow::showed, this, &MainWindow::onShowed, Qt::QueuedConnection);
 }
 
 void MainWindow::setupMenuBar() {
@@ -140,46 +143,23 @@ void MainWindow::about() {
     msgBox->exec();
 }
 
+void MainWindow::onCdDired(const QString path)
+{
+    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
+    filePathLabel->setText(path);
+}
+
 void MainWindow::loadWindowInfo() {
     QVariant geometry = ConfigIni::getInstance().iniRead(QStringLiteral("Main/geometry"), "0");
 //    qDebug() << geometry;
     if (geometry.isValid() && geometry.toInt() != 0) {
         bool result = restoreGeometry(geometry.toByteArray());
-        qDebug() << QString("restoreGeometry result %1").arg(result);
     } else {
         // resize window
         QSize aSize = qGuiApp->primaryScreen()->availableSize();
-        qDebug() << "loadWindowInfo aSize:" << aSize;
         resize(aSize * 0.618);
     }
-    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
-    if (path.isEmpty()) {
-        path = getWeChatImagePath();
-        emit treeViewClicked(path);
-        navDock->onCdDir(path);
-    }
-
-//    QVariant size = readSettings(CONFIG_GROUP_WINDOW, CONFIG_WIN_SIZE);
-//    qDebug() << size;
-//    if (size.isValid()) {
-//        resize(size.toSize());
-//    } else {
-//        // resize window
-//        QSize aSize = qGuiApp->primaryScreen()->availableSize();
-//        qDebug() << aSize;
-//        resize(aSize * 0.618);
-//    }
-
-//    QVariant pos = readSettings(CONFIG_GROUP_WINDOW, CONFIG_WIN_POS);
-//    qDebug() << pos;
-//    if (pos.isValid()) {
-//        move(pos.toPoint());
-//    }
-
-}
-
-void MainWindow::saveWindowInfo() {
-    navDock->saveDockInfo();
+    emit showed();
 }
 
 QString MainWindow::getWeChatImagePath()
@@ -189,25 +169,37 @@ QString MainWindow::getWeChatImagePath()
     if (fileSavePath == "MyDocument:")
     {
         QStringList list = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
-        if (!list.isEmpty())
+        if (list.isEmpty())
         {
-            QString path = list[0] + QDir::separator() + "WeChat Files";
-            QFileInfo link(path);
-            if (link.isDir() && link.isJunction())
-            {
-                path = link.junctionTarget();
-            }
+            return fileSavePath;
+        }
 
-            QList<QFileInfo> list = QDir{ path }.entryInfoList(QDir::Dirs | QDir::Hidden | QDir::System, QDir::NoSort);
-            for (const auto& f : list)
+        QString path = list[0] + QDir::separator() + "WeChat Files";
+        QFileInfo link(path);
+        if (link.isDir() && link.isJunction())
+        {
+            path = link.junctionTarget();
+        }
+        QList<QFileInfo> files = QDir{ path }.entryInfoList(QDir::Dirs | QDir::Hidden | QDir::System, QDir::NoSort);
+        for (const auto& f : files)
+        {
+            if (f.baseName().startsWith("wxid_"))
             {
-                if (f.baseName().startsWith("wxid_"))
-                {
-                    return f.absoluteFilePath() + QDir::separator() + "FileStorage" + QDir::separator() + "Image";
-                }
+                return f.absoluteFilePath() + QDir::separator() + "FileStorage" + QDir::separator() + "Image";
             }
         }
     }
     return fileSavePath;
+}
+
+void MainWindow::onShowed()
+{
+    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
+    if (path.isEmpty()) {
+        path = getWeChatImagePath();
+    }
+    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
+    filePathLabel->setText(path);
+    emit onCdDir(path);
 }
 

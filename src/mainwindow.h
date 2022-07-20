@@ -41,16 +41,14 @@ private:
 
     void loadWindowInfo();
 
-    void saveWindowInfo();
-
     QString getWeChatImagePath();
 
-public slots:
-    void about();
-
 private slots:
-
+    void about();
+    void onCdDired(const QString path);
+    void onShowed();
 signals:
-    void treeViewClicked(const QString path);
+    void onCdDir(const QString path);
+    void showed();
 };
 #endif // MAINWINDOW_H
