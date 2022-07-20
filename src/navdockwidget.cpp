@@ -97,9 +97,9 @@ void NavDockWidget::onCdDir(const QString path)
     this->treeView->scrollTo(index);
 }
 
-void NavDockWidget::imageLoaded(const QPixmap &readData)
+void NavDockWidget::imageLoaded(ImageReadData* readData)
 {
-    this->thumbnail->setPixmap(readData);
+    this->thumbnail->setPixmap(readData->pixmap);
     this->thumbnail->setVisible(true);
 }
 

@@ -21,7 +21,7 @@ ImageCore::ImageCore(QObject* parent) : QObject(parent)
 #endif
     QPixmapCache::setCacheLimit(512000);
 
-    connect(&loadFutureWatcher, &QFutureWatcher<ReadData>::finished, this, [this]() {
+    connect(&loadFutureWatcher, &QFutureWatcher<ImageReadData>::finished, this, [this]() {
         loadPixmap(loadFutureWatcher.result(), false);
         });
 }
@@ -43,7 +43,7 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
     auto* cachedPixmap = new QPixmap();
     if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
     {
-        ReadData readData = {
+        ImageReadData readData = {
             *cachedPixmap,
             fileInfo
         };
@@ -61,7 +61,7 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
 }
 
 
-ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, const QSize& targetSize)
+ImageReadData ImageCore::readFile(const QString& fileName, bool forCache, const QSize& targetSize)
 {
     LOG_INFO << "ImageCore::readFile " << fileName << " QSize: " << targetSize;
     QFileInfo fileInfo(fileName);
@@ -69,7 +69,7 @@ ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, 
     QString sanitaryFileName = fileName;
     if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
     {
-        ReadData readData = {
+        ImageReadData readData = {
             *cachedPixmap,
             fileInfo
         };
@@ -126,16 +126,16 @@ ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, 
         }
     }
 
-    ReadData readData = {
+    ImageReadData readData = {
         readPixmap,
         //QFileInfo(imageFileName),
         fileInfo,
         extension
     };
-    if (forCache)
-    {
-        addToCache(readData);
-    }
+    //if (forCache)
+    //{
+    //    addToCache(readData);
+    //}
     return readData;
 }
 
@@ -144,7 +144,7 @@ ImageCore::ReadData ImageCore::readFile(const QString& fileName, bool forCache, 
 //
 //}
 
-void ImageCore::loadPixmap(const ReadData& readData, bool fromCache)
+void ImageCore::loadPixmap(const ImageReadData& readData, bool fromCache)
 {
     if (readData.pixmap.isNull())
         return;
@@ -152,10 +152,10 @@ void ImageCore::loadPixmap(const ReadData& readData, bool fromCache)
     // If this image isnt originally from the cache, add it to the cache
     if (!fromCache)
         addToCache(readData);
-    emit imageLoaded(readData.pixmap);
+    emit imageLoaded((ImageReadData*)&readData);
 }
 
-void ImageCore::addToCache(const ReadData &readData)
+void ImageCore::addToCache(const ImageReadData &readData)
 {
     if (readData.pixmap.isNull()) {
         return;

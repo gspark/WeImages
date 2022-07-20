@@ -291,7 +291,7 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
             {
                 if (this->imageCore->isImageFile(itemData->fileInfo))
                 {
-                    ImageCore::ReadData image = imageCore->readFile(itemData->fileInfo.absoluteFilePath(), true);
+                    ImageReadData image = imageCore->readFile(itemData->fileInfo.absoluteFilePath(), true);
                     itemData->thumbnail = image.pixmap;
                 }
                 else {
@@ -359,7 +359,7 @@ void FileWidget::exportSelected()
     {
         QString directory = QFileDialog::getExistingDirectory(this, tr("open directory"), QDir::currentPath());
         QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
-            const ImageCore::ReadData& readData = this->imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
+            const ImageReadData& readData = this->imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
             QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
             LOG_INFO << "export file: " << file;
             return readData.pixmap.save(file);

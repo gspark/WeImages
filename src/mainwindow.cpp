@@ -2,6 +2,7 @@
 #include "filewidget.h"
 #include "config.h"
 #include "navdockwidget.h"
+#include "filesystemhelperfunctions.h"
 
 #include <QApplication>
 #include <QAction>
@@ -76,7 +77,7 @@ void MainWindow::setupWidgets() {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 
     // navigation dock
-    navDock->setObjectName(OBJECTNAME_NAV_DOCK);
+    //navDock->setObjectName(OBJECTNAME_NAV_DOCK);
     // show in the dock
     // navDock->setWindowTitle(tr("Navigation Bar"));
     navDock->setMinimumWidth(210);
@@ -89,6 +90,7 @@ void MainWindow::setupWidgets() {
     connect(navDock, &NavDockWidget::treeViewClicked, this, &MainWindow::onCdDired);
 
     connect(this, &MainWindow::showed, this, &MainWindow::onShowed, Qt::QueuedConnection);
+    connect(this->imageCore, &ImageCore::imageLoaded, this, &MainWindow::imageLoaded);
 }
 
 void MainWindow::setupMenuBar() {
@@ -201,5 +203,11 @@ void MainWindow::onShowed()
     ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
     filePathLabel->setText(path);
     emit onCdDir(path);
+}
+
+void MainWindow::imageLoaded(ImageReadData* readData)
+{
+    filePathLabel->setText(readData->fileInfo.absoluteFilePath());
+    fileSizeLabel->setText(fileSizeToString(readData->fileInfo.size()));
 }
 

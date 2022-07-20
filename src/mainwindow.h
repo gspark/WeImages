@@ -8,6 +8,7 @@ class QFileSystemModel;
 class ImageCore;
 class QStatusBar;
 class QLabel;
+class ImageReadData;
 
 class MainWindow : public QMainWindow
 {
@@ -47,6 +48,7 @@ private slots:
     void about();
     void onCdDired(const QString path);
     void onShowed();
+    void imageLoaded(ImageReadData* readData);
 signals:
     void onCdDir(const QString path);
     void showed();

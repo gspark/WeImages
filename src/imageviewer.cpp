@@ -162,7 +162,7 @@ void ImageViewer::initStatusBar(){
 
 
 void ImageViewer::displayImage(QString absoluteFilePath) {
-    const ImageCore::ReadData& readData = this->imageCore->readFile(absoluteFilePath, true, QSize());
+    const ImageReadData& readData = this->imageCore->readFile(absoluteFilePath, true, QSize());
 
     fileIndexLabel->setText(QString::number(this->imageSwitcher->currIndex() + 1) + "/" + QString::number(this->imageSwitcher->count()));
     filePathLabel->setText(readData.fileInfo.absoluteFilePath());

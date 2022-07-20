@@ -17,30 +17,21 @@
 #define ICON_WIDE 48
 #define ICON_HEIGHT 48
 
+struct ImageReadData
+{
+    QPixmap pixmap;
+    QFileInfo fileInfo;
+    QString suffix;
+};
+
+// 自定义数据类型需注册才能放入QVariant
+Q_DECLARE_METATYPE(ImageReadData);
+
 class ImageCore : public QObject
 {
     Q_OBJECT
 
 public:
-    //struct FileDetails
-    //{
-    //    QFileInfo fileInfo;
-    //    QFileInfoList folderFileInfoList;
-    //    int loadedIndexInFolder = -1;
-    //    bool isLoadRequested = false;
-    //    bool isPixmapLoaded = false;
-    //    bool isMovieLoaded = false;
-    //    QSize baseImageSize;
-    //    QSize loadedPixmapSize;
-    //};
-
-    struct ReadData
-    {
-        QPixmap pixmap;
-        QFileInfo fileInfo;
-        QString suffix;
-    };
-
     explicit ImageCore(QObject* parent = nullptr);
 
     //************************************
@@ -51,10 +42,10 @@ public:
     //************************************
     void loadFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
 
-    ReadData readFile(const QString& fileName, bool forCache, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
+    ImageReadData readFile(const QString& fileName, bool forCache, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
     //ReadData readFileSize(const QString& fileName, bool forCache, const QSize& targetSize);
-    void loadPixmap(const ReadData& readData, bool fromCache);
-    void addToCache(const ReadData& readImageAndFileInfo);
+    void loadPixmap(const ImageReadData& readData, bool fromCache);
+    void addToCache(const ImageReadData& readImageAndFileInfo);
 
     bool isImageFile(const QFileInfo& fileInfo);
 
@@ -63,9 +54,9 @@ public:
     bool isWeChatImage(const QString& extension, const QString& fileName);
 
 signals:
-    void imageLoaded(const QPixmap& readData);
+    void imageLoaded(ImageReadData* readData);
 private:
-    QFutureWatcher<ReadData> loadFutureWatcher;
+    QFutureWatcher<ImageReadData> loadFutureWatcher;
 
     BYTE* datConverImage(const QString& datFileName, long long fileSize, QString* extension);
 

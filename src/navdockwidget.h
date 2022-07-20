@@ -3,14 +3,13 @@
 
 #include <QDockWidget>
 
-#define OBJECTNAME_NAV_DOCK         "Navigation Bar"
-
 class QLabel;
 class ImageCore;
 class QFileSystemModel;
 class FileFilterProxyModel;
 class QTreeView;
 class QAbstractItemModel;
+class ImageReadData;
 
 class NavDockWidget : public QDockWidget
 {
@@ -37,7 +36,7 @@ private:
 
 private slots:
     void onTreeViewClicked(const QModelIndex& index);
-    void imageLoaded(const QPixmap& readData);
+    void imageLoaded(ImageReadData* readData);
 
 signals:
     void treeViewClicked(const QString path);
