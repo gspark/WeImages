@@ -21,38 +21,22 @@ NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
     treeView = new QTreeView;
 
     thumbnail = new QLabel;
-    //thumbnail->setBackgroundRole(QPalette::Base);
-    //thumbnail->setStyleSheet("QLabel{bkorder:1px solid rgb(0, 255, 0);}");
-    //thumbnail->setGeometry(0, 0, -1, -1);
-    //thumbnail->setMinimumHeight(THUMBNAIL_HEIGHT);
-    //thumbnail->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     thumbnail->setAlignment(Qt::AlignCenter);
     thumbnail->setVisible(false);
     //thumbnail->setScaledContents(true);
-
-    //thumbnail->setFrameStyle(QFrame::WinPanel | QFrame::Raised);
-    //thumbnail->setLineWidth(3);
-    //thumbnail->setStyleSheet("QLabel {background-color:black}");
-
-    //scrollArea = new QScrollArea;
-    //scrollArea->setBackgroundRole(QPalette::Dark);
-    //scrollArea->setWidget(thumbnail);
-    //scrollArea->setVisible(false);
+    thumbnail->setFrameStyle(QFrame::StyledPanel);
 
     fileModelInit();
     treeViewInit();
 
     auto* widget = new QWidget(this);
     auto* vLayout = new QVBoxLayout(widget);
-    vLayout->setContentsMargins(0, 0, 0, 0);
+    vLayout->setContentsMargins(1, 0, 0, 0);
     vLayout->addWidget(treeView);
-    //vLayout->addStretch();
     vLayout->addWidget(thumbnail);
 
     this->setWidget(widget);
-
     loadDockInfo();
-
     connect(imageCore, &ImageCore::imageLoaded, this, &NavDockWidget::imageLoaded);
 }
 
@@ -139,7 +123,6 @@ void NavDockWidget::saveDockInfo()
 
 void NavDockWidget::onCdDir(const QString path)
 {
-    //this->treeView->expand(this->proxyModel->proxyIndex(path));
     this->treeView->setCurrentIndex(this->proxyModel->proxyIndex(path));
 }
 

@@ -18,6 +18,8 @@
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QFileSystemModel>
+#include <QSettings>
+#include <QStandardPaths>
 
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
@@ -29,16 +31,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     navDock = new NavDockWidget(fileModel, imageCore);
 
     fileModelInit();
-    setupWidgets();
     setupMenuBar();
-
+    setupWidgets();
     connect(qApp, &QCoreApplication::aboutToQuit, this, &MainWindow::saveWindowInfo);
-
     loadWindowInfo();
 }
 
 MainWindow::~MainWindow() {
-
     navDock->deleteLater();
     fileModel->deleteLater();
     delete this->imageCore;
@@ -49,23 +48,31 @@ void MainWindow::fileModelInit() {
 #if DISABLE_FILE_WATCHER
     fileModel->setOptions(QFileSystemModel::DontWatchForChanges);
 #endif
-    fileModel->setRootPath("");
+    //fileModel->setRootPath("");
     fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System | QDir::Hidden);
     fileModel->setNameFilters(this->imageCore->imageFileNames());
     fileModel->setReadOnly(true);
+    fileModel->setRootPath("");
+}
+
+void MainWindow::initStatusBar()
+{
+    fileIndexLabel = new QLabel();
+    filePathLabel = new QLabel();
+    fileSizeLabel = new QLabel();
+
+    statusBar()->addWidget(fileIndexLabel, 0);
+    statusBar()->addWidget(filePathLabel, 1);
+    statusBar()->addWidget(fileSizeLabel, 0);
 }
 
 void MainWindow::setupWidgets() {
-    statusBar()->showMessage(tr("Ready"));
+    initStatusBar();
 
     // central widget
     auto *widget = new FileWidget(/*this->fileModel, */this->imageCore, this);
-    connectShortcut(widget);
-
-    //mainLayout->addWidget(widget);
-    //mainLayout->addWidget(statusBar);
+ 
     setCentralWidget(widget);
-    //setLayout(mainLayout);
 
     // dock
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
@@ -78,6 +85,7 @@ void MainWindow::setupWidgets() {
     addDockWidget(Qt::LeftDockWidgetArea, navDock);
     connect(navDock, &NavDockWidget::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
     connect(widget, &FileWidget::onCdDir, navDock, &NavDockWidget::onCdDir);
+    connect(this, &MainWindow::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
 }
 
 void MainWindow::setupMenuBar() {
@@ -103,28 +111,20 @@ void MainWindow::setupMenuBar() {
     // help menu
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
-//    aboutAct->setToolTip(tr("Show the application's About box"));
-    QAction *aboutQtAct = helpMenu->addAction(tr("About &Qt"), qApp, &QApplication::aboutQt);
-//    aboutQtAct->setToolTip(tr("Show the Qt library's About box"));
+    aboutAct->setToolTip(tr("Show the application's About box"));
 }
-
-
-void MainWindow::connectShortcut(QWidget *widget) {
-
-}
-
 
 // show about message
 void MainWindow::about() {
     static const char message[] =
-            "<p><b>WeChatImages</b></p>"
+            "<p><b>WeImages</b></p>"
 
             "<p>Version:&nbsp;0.1(x64)</p>"
             "<p>Author:&nbsp;&nbsp;shrill</p>"
             "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022/03/07</p>"
 
             "<p></p>"
-//        "<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
+        //"<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
 //        "<p>Video:&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.bilibili.com/video/BV1ng411L7gx\">BiliBili video</a>"
     ;
 
@@ -152,12 +152,12 @@ void MainWindow::loadWindowInfo() {
         qDebug() << "loadWindowInfo aSize:" << aSize;
         resize(aSize * 0.618);
     }
-//    QVariant state = ConfigIni::getInstance().iniRead(QStringLiteral("/state"), "0");
-////    qDebug() << state;
-//    if (state.isValid()) {
-//        bool result = restoreState(state.toByteArray());
-//        qDebug() << QString("restoreState result %1").arg(result);
-//    }
+    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
+    if (path.isEmpty()) {
+        path = getWeChatImagePath();
+        emit treeViewClicked(path);
+        navDock->onCdDir(path);
+    }
 
 //    QVariant size = readSettings(CONFIG_GROUP_WINDOW, CONFIG_WIN_SIZE);
 //    qDebug() << size;
@@ -180,5 +180,34 @@ void MainWindow::loadWindowInfo() {
 
 void MainWindow::saveWindowInfo() {
     navDock->saveDockInfo();
+}
+
+QString MainWindow::getWeChatImagePath()
+{
+    QSettings setting("HKEY_CURRENT_USER\\SOFTWARE\\Tencent\\WeChat", QSettings::NativeFormat);
+    QString fileSavePath = setting.value("FileSavePath").toString();
+    if (fileSavePath == "MyDocument:")
+    {
+        QStringList list = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation);
+        if (!list.isEmpty())
+        {
+            QString path = list[0] + QDir::separator() + "WeChat Files";
+            QFileInfo link(path);
+            if (link.isDir() && link.isJunction())
+            {
+                path = link.junctionTarget();
+            }
+
+            QList<QFileInfo> list = QDir{ path }.entryInfoList(QDir::Dirs | QDir::Hidden | QDir::System, QDir::NoSort);
+            for (const auto& f : list)
+            {
+                if (f.baseName().startsWith("wxid_"))
+                {
+                    return f.absoluteFilePath() + QDir::separator() + "FileStorage" + QDir::separator() + "Image";
+                }
+            }
+        }
+    }
+    return fileSavePath;
 }
 

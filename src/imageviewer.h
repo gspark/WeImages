@@ -42,20 +42,22 @@ private:
     ImageSwitcher* imageSwitcher;
     ImageCore* imageCore;
 
-    QSize imgSize;//图片尺寸
-    double scaleVar;//缩放比
-    //界面初始化
-    void initUI();//UI创建及初始化
-    void initToolBar();//初始化工具栏
-    void initStatusBar();//初始化状态栏
+    //QSize imgSize;//图片尺寸
+    //double scaleVar;//缩放比
+    //UI创建及初始化
+    void initUI();
+    //初始化工具栏
+    void initToolBar();
+    //初始化状态栏
+    void initStatusBar();
 
     void displayImage(QString absoluteFilePath);
 
     double computeScaleWithView(const QPixmap& pixmap);
 
-    void zoomInImage();
-    void zoomOutImage();
-    void extendImage();
+    //void zoomInImage();
+    //void zoomOutImage();
+    //void extendImage();
 
     void keyPressEvent(QKeyEvent *event);//按键事件
 protected:

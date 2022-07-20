@@ -361,7 +361,7 @@ void FileWidget::exportSelected()
         QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
             const ImageCore::ReadData& readData = this->imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
             QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
-            LOG_INFO << " export file: " << file;
+            LOG_INFO << "export file: " << file;
             return readData.pixmap.save(file);
             });
         future.waitForFinished();
@@ -370,7 +370,7 @@ void FileWidget::exportSelected()
 
 void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
     QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
-    LOG_INFO << " onCurrentChanged fileInfo: " << info;
+    LOG_INFO << "onCurrentChanged fileInfo: " << info;
     if (info.isFile()) {
         // TODO background
         this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
@@ -387,7 +387,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
     QString target;
     QModelIndex clicked = index.siblingAtColumn(0);
     QFileInfo info = this->proxyModel->fileInfo(clicked);
-    LOG_INFO << " onFileDoubleClicked info: " << info;
+    LOG_INFO << "onFileDoubleClicked info: " << info;
     if (info.isShortcut()) {
         // handle shortcut
         if (!info.exists()) {

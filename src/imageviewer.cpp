@@ -211,24 +211,24 @@ double ImageViewer::computeScaleWithView(const QPixmap &pixmap) {
 /**************************************
  * 图片处理函数
  *************************************/
-void ImageViewer::zoomInImage(){
-    if(scaleVar <= 1.75){
-        scaleVar = scaleVar+0.25;
-    }else{
-        scaleVar = 2;
-    }
-}
-
-void ImageViewer::zoomOutImage(){
-    if(scaleVar >= 0.35){
-        scaleVar = scaleVar-0.25;
-    }else{
-        scaleVar = 0.1;
-    }
-}
-void ImageViewer::extendImage(){
-    scaleVar = 1;
-}
+//void ImageViewer::zoomInImage(){
+//    if(scaleVar <= 1.75){
+//        scaleVar = scaleVar+0.25;
+//    }else{
+//        scaleVar = 2;
+//    }
+//}
+//
+//void ImageViewer::zoomOutImage(){
+//    if(scaleVar >= 0.35){
+//        scaleVar = scaleVar-0.25;
+//    }else{
+//        scaleVar = 0.1;
+//    }
+//}
+//void ImageViewer::extendImage(){
+//    scaleVar = 1;
+//}
 
 /**************************************
  * 按钮事件
