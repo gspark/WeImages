@@ -269,24 +269,23 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
                 return rowItem;
             }
 
-            auto itemData = new ThumbnailData;
-            itemData->fileInfo = variant.value<QFileInfo>();
-            itemData->isWeChatImage = this->imageCore->isWeChatImage(itemData->fileInfo.suffix(), itemData->fileInfo.fileName());
+            auto itemData = variant.value<ThumbnailData>();
+            itemData.isWeChatImage = this->imageCore->isWeChatImage(itemData.fileInfo.suffix(), itemData.fileInfo.fileName());
 
             if (readPixmap)
             {
-                if (this->imageCore->isImageFile(itemData->fileInfo))
+                if (this->imageCore->isImageFile(itemData.fileInfo))
                 {
-                    ImageReadData image = imageCore->readFile(itemData->fileInfo.absoluteFilePath(), true);
-                    itemData->thumbnail = image.pixmap;
+                    ImageReadData image = imageCore->readFile(itemData.fileInfo.absoluteFilePath(), true);
+                    itemData.thumbnail = image.pixmap;
                 }
                 else {
                     std::lock_guard<std::recursive_mutex> locker(fileIconMutex);
-                    auto icon = ensureIconProvider()->icon(itemData->fileInfo);
-                    itemData->thumbnail = icon.pixmap(ICON_WIDE, ICON_HEIGHT);
+                    auto icon = ensureIconProvider()->icon(itemData.fileInfo);
+                    itemData.thumbnail = icon.pixmap(ICON_WIDE, ICON_HEIGHT);
                 }
             }
-            rowItem->setData(QVariant::fromValue(*itemData), Qt::UserRole + 3);
+            rowItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);
             return rowItem;
         });
     future.waitForFinished();

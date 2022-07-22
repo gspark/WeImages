@@ -76,12 +76,12 @@ QFileInfo FileListModel::fileInfo(const QModelIndex& index) const
     if (item)
     {
         QVariant variant = item->data(Qt::UserRole + 3);
-        if (variant.canConvert<ThumbnailData>())
-        {
+        //if (variant.canConvert<ThumbnailData>())
+        //{
             auto thumbnailData = variant.value<ThumbnailData>();
             return thumbnailData.fileInfo;
-        }
-        return variant.value<QFileInfo>();
+        //}
+        //return variant.value<QFileInfo>();
     }
     return QFileInfo();
 }
@@ -97,12 +97,13 @@ QFileInfo FileListModel::fileInfo(const QStandardItem* item) const
     {
         return QFileInfo();
     }
-    if (variant.canConvert<ThumbnailData>())
-    {
-        auto data = variant.value<ThumbnailData>();
-        return data.fileInfo;
-    }
-    return variant.value<QFileInfo>();
+    //if (variant.canConvert<ThumbnailData>())
+    //{
+    //    auto data = variant.value<ThumbnailData>();
+    //    return data.fileInfo;
+    //}
+    auto data = variant.value<ThumbnailData>();
+    return data.fileInfo;
 }
 
 QString FileListModel::type(const QModelIndex& index) const
@@ -126,8 +127,12 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
     int itemRow = 0;
     for (const auto& fileInfo : fileInfos)
     {
+        ThumbnailData data;
+        data.isWeChatImage = false;
+        data.fileInfo = fileInfo;
+    
         auto checkBoxItem = new QStandardItem();
-        checkBoxItem->setData(QVariant::fromValue(fileInfo), Qt::UserRole + 3);
+        checkBoxItem->setData(QVariant::fromValue(data), Qt::UserRole + 3);
         checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
         this->setItem(itemRow, CheckBoxColumn, checkBoxItem);
 

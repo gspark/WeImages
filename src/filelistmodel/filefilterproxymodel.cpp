@@ -40,7 +40,7 @@ bool FileFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& so
 void FileFilterProxyModel::sort(int column, Qt::SortOrder order)
 {
     sortColumn = column;
-    //QSortFilterProxyModel::sort(column, order);
+    QSortFilterProxyModel::sort(column, order);
 }
 
 bool FileFilterProxyModel::nameCompare(const QModelIndex& source_left, const QModelIndex& source_right) const
