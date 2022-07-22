@@ -1,10 +1,10 @@
 #include "checkBoxDelegate.h"
 #include "..\filelistmodel\filelistmodel.h"
 
-#include <QCheckBox>
-#include <QApplication>
+//#include <QCheckBox>
+//#include <QApplication>
 #include <QMouseEvent>
-#include <QPainter>
+//#include <QPainter>
 
 CheckBoxDelegate::CheckBoxDelegate(QObject* parent /*= 0*/)
 {

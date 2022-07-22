@@ -79,6 +79,7 @@ void NavDockWidget::treeViewInit()
     treeView->header()->hide();
     treeView->header()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
     treeView->header()->setStretchLastSection(false);
+    treeView->setFont(QFont("Tahoma", 9));
 }
 
 
