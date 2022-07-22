@@ -161,7 +161,7 @@ void MainWindow::loadWindowInfo() {
         QSize aSize = qGuiApp->primaryScreen()->availableSize();
         resize(aSize * 0.618);
     }
-    emit showed();
+    //emit showed();
 }
 
 QString MainWindow::getWeChatImagePath()
@@ -202,7 +202,7 @@ void MainWindow::onShowed()
     }
     ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
     filePathLabel->setText(path);
-    emit onCdDir(path);
+    //emit onCdDir(path);
 }
 
 void MainWindow::imageLoaded(ImageReadData* readData)

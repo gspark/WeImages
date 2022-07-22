@@ -8,7 +8,7 @@
 #include "models/imageswitcher.h"
 #include "delegate/checkBoxDelegate.h"
 #include "filelistmodel/filelistmodel.h"
-#include "filesystemhelperfunctions.h"
+
 #include "iconhelper.h"
 
 #include <QApplication>
@@ -185,13 +185,22 @@ void FileWidget::cdPath(const QString& path)
     if (path.isEmpty())
         return;
     updateCurrentPath(path);
-    emit onCdDir(path);
+    //emit onCdDir(path);
 }
 
 void FileWidget::updateCurrentPath(const QString& path)
 {
+    currentPath = path;
+    //QFuture<void> fut = QtConcurrent::run(&FileWidget::initListModel, this, path, false);
+    //fut.waitForFinished();
+    //onUpdateItems();
     initListModel(path, false);
+}
 
+void FileWidget::onUpdateItems()
+{
+    this->tableView->viewport()->update();
+   
     if (FileViewType::Table == fileViewType)
     {
         stackedWidget->setCurrentIndex(0);
@@ -200,12 +209,12 @@ void FileWidget::updateCurrentPath(const QString& path)
     {
         DWORD start = GetTickCount();
         thumbnailView->setUpdatesEnabled(false);
-        setThumbnailView(path);
+        setThumbnailView(currentPath);
         thumbnailView->setUpdatesEnabled(true);
         LOG_INFO << "thumbnailView append rows time: " << GetTickCount() - start;
         stackedWidget->setCurrentIndex(1);
     }
-    currentPath = path;
+    //setTableColWidth();
 }
 
 void FileWidget::initListModel(const QString& path, bool readPixmap) {
@@ -219,51 +228,28 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
 
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
-        tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
+        //tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
+        //tableView->setAlternatingRowColors(true);
+        //tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+        //setTableColWidth();
+
+        //tableView->setFont(QFont("Fixedsys", 8));
         // must after setModel 
         connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
         connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+        //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
     }
-    else {
-        fileListModel->clear();
-    }
-
-    if (FileViewType::Table == fileViewType)
-    {
-        fileListModel->setHorizontalHeaderLabels(QStringList{ tr(""),tr("Name")/*, tr("Ext")*/, tr("Size"), tr("Date") });
-    }
-
     QList<QFileInfo> fileInfos = getRowItemList(path);
-    if (fileInfos.isEmpty())
-    {
-        return;
-    }
-    int itemRow = 0;
-    for (const auto& fileInfo : fileInfos)
-    {
-        auto checkBoxItem = new QStandardItem();
-        checkBoxItem->setData(QVariant::fromValue(fileInfo), Qt::UserRole + 3);
-        checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
-        fileListModel->setItem(itemRow, CheckBoxColumn, checkBoxItem);
+    this->fileListModel->updateItems(fileInfos);
+    onUpdateItems();
+}
 
-        auto fileNameItem = new QStandardItem();
-        fileNameItem->setIcon(ensureIconProvider()->icon(fileInfo));
-        fileNameItem->setData(fileInfo.fileName(), Qt::DisplayRole);
-        fileListModel->setItem(itemRow, NameColumn, fileNameItem);
-
-        //auto fileExtItem = new QStandardItem();
-        //fileExtItem->setData(fileInfo.suffix(), Qt::DisplayRole);
-        //fileListModel->setItem(itemRow, ExtColumn, fileExtItem);
-
-        auto sizeItem = new QStandardItem();
-        sizeItem->setData(fileSizeToString(fileInfo.size()), Qt::DisplayRole);
-        fileListModel->setItem(itemRow, SizeColumn, sizeItem);
-
-        auto dateItem = new QStandardItem();
-        dateItem->setData(fileInfo.lastModified(), Qt::DisplayRole);
-        fileListModel->setItem(itemRow, DateColumn, dateItem);
-        itemRow++;
-    }
+void FileWidget::setTableColWidth()
+{
+    tableView->setColumnWidth(0, 18);
+    tableView->setColumnWidth(1, tableView->size().width() - 18 - 90 - 137 - 32);
+    tableView->setColumnWidth(2, 90);
+    tableView->setColumnWidth(3, 137);
 }
 
 void FileWidget::setThumbnailView(const QString& path, bool readPixmap)

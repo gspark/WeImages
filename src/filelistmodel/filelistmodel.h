@@ -12,7 +12,7 @@ enum FileListViewColumn {
     CheckBoxColumn, NameColumn, SizeColumn, DateColumn, NumberOfColumns
 };
 
-enum Type { Dir, File, System };
+//enum Type { Dir, File, System };
 
 class QFileIconProvider;
 
@@ -35,8 +35,10 @@ public:
     QString type(const QModelIndex& index) const;
 
     QModelIndex index(const QString& path, int column = 0) const;
-Q_SIGNALS:
 
+    void updateItems(const QList<QFileInfo> fileInfos);
+Q_SIGNALS:
+    void onUpdateItems();
 private:
     QFileIconProvider* m_iconProvider;
 };

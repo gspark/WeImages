@@ -99,6 +99,8 @@ private:
 
     void initListModel(const QString& dir, bool readPixmap = true);
 
+    void setTableColWidth();
+
     void onCurrentChanged(const QModelIndex& current, const QModelIndex& previous);
 
     void initIconFont();
@@ -118,6 +120,8 @@ private slots:
     void selectAll();
 
     void exportSelected();
+
+    void onUpdateItems();
 
 signals:
     void onCdDir(const QString path);

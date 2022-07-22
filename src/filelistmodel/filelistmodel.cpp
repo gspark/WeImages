@@ -1,10 +1,12 @@
 #include "filelistmodel.h"
 #include "../delegate/thumbnailData.h"
+#include "../filesystemhelperfunctions.h"
 
 #include <QFileIconProvider>
 
 FileListModel::FileListModel(QFileIconProvider* iconProvider, QObject* parent) : QStandardItemModel(0, NumberOfColumns, parent) {
     this->m_iconProvider = iconProvider;
+    this->setHorizontalHeaderLabels(QStringList{ tr(""),tr("Name")/*, tr("Ext")*/, tr("Size"), tr("Date") });
 }
 
 FileListModel::~FileListModel() = default;
@@ -111,4 +113,43 @@ QString FileListModel::type(const QModelIndex& index) const
 QModelIndex FileListModel::index(const QString& path, int column /*= 0*/) const
 {
     return QModelIndex();
+}
+
+void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
+{
+    this->removeRows(0, this->rowCount());
+    if (fileInfos.isEmpty())
+    {
+        return;
+    }
+    //this->beginResetModel();
+    int itemRow = 0;
+    for (const auto& fileInfo : fileInfos)
+    {
+        auto checkBoxItem = new QStandardItem();
+        checkBoxItem->setData(QVariant::fromValue(fileInfo), Qt::UserRole + 3);
+        checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
+        this->setItem(itemRow, CheckBoxColumn, checkBoxItem);
+
+        auto fileNameItem = new QStandardItem();
+        fileNameItem->setIcon(m_iconProvider->icon(fileInfo));
+        fileNameItem->setData(fileInfo.fileName(), Qt::DisplayRole);
+        this->setItem(itemRow, NameColumn, fileNameItem);
+
+        //auto fileExtItem = new QStandardItem();
+        //fileExtItem->setData(fileInfo.suffix(), Qt::DisplayRole);
+        //fileListModel->setItem(itemRow, ExtColumn, fileExtItem);
+
+        auto sizeItem = new QStandardItem();
+        sizeItem->setData(fileSizeToString(fileInfo.size()), Qt::DisplayRole);
+        this->setItem(itemRow, SizeColumn, sizeItem);
+
+        auto dateItem = new QStandardItem();
+        dateItem->setData(fileInfo.lastModified().toString("yyyy-MM-dd"), Qt::DisplayRole);
+        this->setItem(itemRow, DateColumn, dateItem);
+        itemRow++;
+    }
+    this->setRowCount(itemRow);
+    //this->endResetModel();
+    //emit onUpdateItems();
 }
