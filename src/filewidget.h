@@ -93,8 +93,6 @@ private:
 
     void cdPath(const QString& path);
 
-    void updateCurrentPath(const QString& path);
-
     void setThumbnailView(const QString& dir, bool readPixmap = true);
 
     void initListModel(const QString& dir, bool readPixmap = true);
@@ -124,7 +122,7 @@ private slots:
     void onUpdateItems();
 
 signals:
-    void onCdDir(const QString path);
+    void cdDir(const QString path);
 };
 
 #endif // FILEWIDGET_H

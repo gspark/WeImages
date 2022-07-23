@@ -182,19 +182,46 @@ void FileWidget::initWidgetLayout() {
 
 void FileWidget::cdPath(const QString& path)
 {
-    if (path.isEmpty())
-        return;
-    updateCurrentPath(path);
-    //emit onCdDir(path);
-}
-
-void FileWidget::updateCurrentPath(const QString& path)
-{
     currentPath = path;
     //QFuture<void> fut = QtConcurrent::run(&FileWidget::initListModel, this, path, false);
     //fut.waitForFinished();
-    //onUpdateItems();
     initListModel(path, false);
+    onUpdateItems();
+}
+
+void FileWidget::initListModel(const QString& path, bool readPixmap) {
+    if (nullptr == fileListModel)
+    {
+        fileListModel = new FileListModel(ensureIconProvider());
+        fileListModel->setColumnCount(NumberOfColumns);
+
+        proxyModel = new FileFilterProxyModel;
+        //proxyModel->setSourceModel(fileListModel);
+
+        thumbnailView->setModel(proxyModel);
+        tableView->setModel(proxyModel);
+        //tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
+        //tableView->setAlternatingRowColors(true);
+        //tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+        //setTableColWidth();
+
+        //tableView->setFont(QFont("Fixedsys", 8));
+        // must after setModel 
+        //connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+        //connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+        //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
+    }
+    QList<QFileInfo> fileInfos = getRowItemList(path);
+
+    DWORD start = GetTickCount();
+    disconnect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    disconnect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    proxyModel->setSourceModel(nullptr);
+    this->fileListModel->updateItems(fileInfos);
+    proxyModel->setSourceModel(fileListModel);
+    connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    LOG_INFO << "updateItems time: " << GetTickCount() - start;
 }
 
 void FileWidget::onUpdateItems()
@@ -215,43 +242,7 @@ void FileWidget::onUpdateItems()
         LOG_INFO << "thumbnailView append rows time: " << GetTickCount() - start;
         stackedWidget->setCurrentIndex(1);
     }
-    //setTableColWidth();
-}
-
-void FileWidget::initListModel(const QString& path, bool readPixmap) {
-    if (nullptr == fileListModel)
-    {
-        fileListModel = new FileListModel(ensureIconProvider());
-        fileListModel->setColumnCount(NumberOfColumns);
-
-        proxyModel = new FileFilterProxyModel;
-        proxyModel->setSourceModel(fileListModel);
-
-        thumbnailView->setModel(proxyModel);
-        tableView->setModel(proxyModel);
-        //tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
-        //tableView->setAlternatingRowColors(true);
-        //tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
-        //setTableColWidth();
-
-        //tableView->setFont(QFont("Fixedsys", 8));
-        // must after setModel 
-        connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-        connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-        //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
-    }
-    QList<QFileInfo> fileInfos = getRowItemList(path);
-
-    DWORD start = GetTickCount();
-    disconnect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-    disconnect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-    proxyModel->setSourceModel(nullptr);
-    this->fileListModel->updateItems(fileInfos);
-    proxyModel->setSourceModel(fileListModel);
-    connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-    connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-    LOG_INFO << "updateItems time: " << GetTickCount() - start;
-    onUpdateItems();
+    setTableColWidth();
 }
 
 void FileWidget::setTableColWidth()
@@ -306,7 +297,7 @@ void FileWidget::thumbnail()
     if (this->fileViewType != FileViewType::Thumbnail)
     {
         this->fileViewType = FileViewType::Thumbnail;
-        updateCurrentPath(this->currentPath);
+        onUpdateItems();
     }
 }
 
@@ -315,7 +306,7 @@ void FileWidget::detail()
     if (this->fileViewType != FileViewType::Table)
     {
         this->fileViewType = FileViewType::Table;
-        updateCurrentPath(this->currentPath);
+        onUpdateItems();
     }
 }
 
@@ -396,6 +387,7 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
     // If the file is a symlink, this function returns true if the target is a directory (not the symlink)
     if (info.isDir()) {
         cdPath(target);
+        emit cdDir(target);
         return;
     }
 
@@ -405,6 +397,8 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
 
 void FileWidget::onTreeViewClicked(const QString& path)
 {
+    if (path.isEmpty())
+        return;
     cdPath(path);
 }
 

@@ -23,7 +23,8 @@
 #include <QStandardPaths>
 
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
+{
     setWindowTitle(tr("WeImages"));
 
     this->imageCore = new ImageCore();
@@ -42,7 +43,6 @@ MainWindow::~MainWindow() {
     fileModel->deleteLater();
     delete this->imageCore;
 }
-
 
 void MainWindow::fileModelInit() {
 #if DISABLE_FILE_WATCHER
@@ -67,29 +67,25 @@ void MainWindow::initStatusBar()
 
 void MainWindow::setupWidgets() {
     initStatusBar();
-
     // central widget
-    auto *widget = new FileWidget(/*this->fileModel, */this->imageCore, this);
+    auto *widget = new FileWidget(this->imageCore, this);
  
     setCentralWidget(widget);
 
     // dock
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
-
-    // navigation dock
-    //navDock->setObjectName(OBJECTNAME_NAV_DOCK);
-    // show in the dock
-    // navDock->setWindowTitle(tr("Navigation Bar"));
     navDock->setMinimumWidth(210);
+    navDock->setMaximumWidth(540);
     addDockWidget(Qt::LeftDockWidgetArea, navDock);
-    connect(navDock, &NavDockWidget::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
-    connect(widget, &FileWidget::onCdDir, navDock, &NavDockWidget::onCdDir);
-    connect(this, &MainWindow::onCdDir, widget, &FileWidget::onTreeViewClicked);
-    connect(this, &MainWindow::onCdDir, navDock, &NavDockWidget::onCdDir);
-    connect(widget, &FileWidget::onCdDir, this, &MainWindow::onCdDired);
-    connect(navDock, &NavDockWidget::treeViewClicked, this, &MainWindow::onCdDired);
 
-    connect(this, &MainWindow::showed, this, &MainWindow::onShowed, Qt::QueuedConnection);
+    connect(this, &MainWindow::setPath, navDock, &NavDockWidget::onSetPath);
+
+    connect(navDock, &NavDockWidget::treeViewClicked, widget, &FileWidget::onTreeViewClicked);
+    connect(navDock, &NavDockWidget::treeViewClicked, this, &MainWindow::onCdDir);
+
+    connect(widget, &FileWidget::cdDir, navDock, &NavDockWidget::onCdDir);
+    connect(widget, &FileWidget::cdDir, this, &MainWindow::onCdDir);
+
     connect(this->imageCore, &ImageCore::imageLoaded, this, &MainWindow::imageLoaded);
 }
 
@@ -106,13 +102,6 @@ void MainWindow::setupMenuBar() {
     navDock->toggleViewAction()->setShortcut(Qt::CTRL | Qt::Key_G);
     viewMenu->addAction(navDock->toggleViewAction());
 
-    viewMenu->addSeparator();
-
-//    FileWidget *widget = (FileWidget *)((QSplitter *)centralWidget())->widget(0);
-    auto *widget = (FileWidget *) centralWidget();
-  
-    auto *areaActions = new QActionGroup(this);
-    areaActions->setExclusive(true);
     // help menu
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
@@ -126,26 +115,21 @@ void MainWindow::about() {
 
             "<p>Version:&nbsp;0.1(x64)</p>"
             "<p>Author:&nbsp;&nbsp;shrill</p>"
-            "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022/03/07</p>"
+            "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022-03-07</p>"
 
             "<p></p>"
         //"<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
 //        "<p>Video:&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.bilibili.com/video/BV1ng411L7gx\">BiliBili video</a>"
     ;
 
-//    QMessageBox::about(this, tr("About"), message);
     auto *msgBox = new QMessageBox(this);
     msgBox->setAttribute(Qt::WA_DeleteOnClose);
     msgBox->setWindowTitle(tr("About"));
     msgBox->setText(message);
-    QPixmap pm(QLatin1String(":/resources/icon_app_64.png"));
-    if (!pm.isNull())
-        msgBox->setIconPixmap(pm);
-
     msgBox->exec();
 }
 
-void MainWindow::onCdDired(const QString path)
+void MainWindow::onCdDir(const QString path)
 {
     ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
     filePathLabel->setText(path);
@@ -153,7 +137,6 @@ void MainWindow::onCdDired(const QString path)
 
 void MainWindow::loadWindowInfo() {
     QVariant geometry = ConfigIni::getInstance().iniRead(QStringLiteral("Main/geometry"), "0");
-//    qDebug() << geometry;
     if (geometry.isValid() && geometry.toInt() != 0) {
         bool result = restoreGeometry(geometry.toByteArray());
     } else {
@@ -161,7 +144,13 @@ void MainWindow::loadWindowInfo() {
         QSize aSize = qGuiApp->primaryScreen()->availableSize();
         resize(aSize * 0.618);
     }
-    //emit showed();
+
+    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
+    if (path.isEmpty()) {
+        path = getWeChatImagePath();
+    }
+    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
+    emit setPath(path);
 }
 
 QString MainWindow::getWeChatImagePath()
@@ -192,17 +181,6 @@ QString MainWindow::getWeChatImagePath()
         }
     }
     return fileSavePath;
-}
-
-void MainWindow::onShowed()
-{
-    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
-    if (path.isEmpty()) {
-        path = getWeChatImagePath();
-    }
-    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
-    filePathLabel->setText(path);
-    //emit onCdDir(path);
 }
 
 void MainWindow::imageLoaded(ImageReadData* readData)

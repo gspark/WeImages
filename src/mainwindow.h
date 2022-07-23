@@ -46,11 +46,9 @@ private:
 
 private slots:
     void about();
-    void onCdDired(const QString path);
-    void onShowed();
+    void onCdDir(const QString path);
     void imageLoaded(ImageReadData* readData);
 signals:
-    void onCdDir(const QString path);
-    void showed();
+    void setPath(const QString path);
 };
 #endif // MAINWINDOW_H

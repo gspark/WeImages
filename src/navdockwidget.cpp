@@ -53,7 +53,6 @@ QSize NavDockWidget::sizeHint() const
     return QSize(220, -1);
 }
 
-
 void NavDockWidget::fileModelInit()
 {
     proxyModel->setSourceModel(fileModel);
@@ -82,7 +81,6 @@ void NavDockWidget::treeViewInit()
     treeView->setFont(QFont("Tahoma", 9));
 }
 
-
 void NavDockWidget::onTreeViewClicked(const QModelIndex &index)
 {
     QFileInfo info = proxyModel->fileInfo(index);
@@ -91,11 +89,18 @@ void NavDockWidget::onTreeViewClicked(const QModelIndex &index)
     }
 }
 
-void NavDockWidget::onCdDir(const QString path)
+void NavDockWidget::onSetPath(const QString path)
 {
     QModelIndex index = this->proxyModel->proxyIndex(path);
     this->treeView->setCurrentIndex(index);
     this->treeView->scrollTo(index);
+    this->onTreeViewClicked(index);
+}
+
+void NavDockWidget::onCdDir(const QString path)
+{
+    QModelIndex index = this->proxyModel->proxyIndex(path);
+    this->treeView->setCurrentIndex(index);
 }
 
 void NavDockWidget::imageLoaded(ImageReadData* readData)

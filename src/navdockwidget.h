@@ -21,8 +21,8 @@ public:
     virtual QSize sizeHint() const;
 
 public slots:
+    void onSetPath(const QString path);
     void onCdDir(const QString path);
-
 private:
     QFileSystemModel* fileModel;     // can not delete here
     FileFilterProxyModel* proxyModel;
