@@ -1,11 +1,13 @@
 #include "filelistmodel.h"
 #include "../delegate/thumbnailData.h"
 #include "../filesystemhelperfunctions.h"
+#include "../imagecore.h"
 
 #include <QFileIconProvider>
 
-FileListModel::FileListModel(QFileIconProvider* iconProvider, QObject* parent) : QStandardItemModel(0, NumberOfColumns, parent) {
-    this->m_iconProvider = iconProvider;
+FileListModel::FileListModel(ImageCore* imageCore, QFileIconProvider* iconProvider, QObject* parent) : QStandardItemModel(0, NumberOfColumns, parent) {
+    this->_iconProvider = iconProvider;
+    this->_imageCore = imageCore;
     this->setHorizontalHeaderLabels(QStringList{ tr(""),tr("Name")/*, tr("Ext")*/, tr("Size"), tr("Date") });
 }
 
@@ -108,12 +110,12 @@ QFileInfo FileListModel::fileInfo(const QStandardItem* item) const
 
 QString FileListModel::type(const QModelIndex& index) const
 {
-    return this->m_iconProvider->type(this->fileInfo(index));
+    return this->_iconProvider->type(this->fileInfo(index));
 }
 
 QString FileListModel::type(const QFileInfo& fileInfo) const
 {
-    return this->m_iconProvider->type(fileInfo);
+    return this->_iconProvider->type(fileInfo);
 }
 
 QModelIndex FileListModel::index(const QString& path, int column /*= 0*/) const
@@ -134,16 +136,16 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
     for (const auto& fileInfo : fileInfos)
     {
         ThumbnailData data;
-        data.isWeChatImage = false;
+        data.isWeChatImage = this->_imageCore->isWeChatImage(fileInfo.suffix(), fileInfo.fileName());
         data.fileInfo = fileInfo;
     
         auto checkBoxItem = new QStandardItem();
         checkBoxItem->setData(QVariant::fromValue(data), Qt::UserRole + 3);
-        checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
+        //checkBoxItem->setData(Qt::CheckState::Unchecked, Qt::CheckStateRole);
         this->setItem(itemRow, CheckBoxColumn, checkBoxItem);
 
         auto fileNameItem = new QStandardItem();
-        fileNameItem->setIcon(m_iconProvider->icon(fileInfo));
+        fileNameItem->setIcon(_iconProvider->icon(fileInfo));
         fileNameItem->setData(fileInfo.fileName(), Qt::DisplayRole);
         this->setItem(itemRow, NameColumn, fileNameItem);
 

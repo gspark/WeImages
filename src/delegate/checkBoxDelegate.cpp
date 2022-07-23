@@ -1,8 +1,9 @@
 #include "checkBoxDelegate.h"
 #include "..\filelistmodel\filelistmodel.h"
+#include "..\delegate\thumbnailData.h"
 
-//#include <QCheckBox>
-//#include <QApplication>
+#include <QRadioButton>
+#include <QApplication>
 #include <QMouseEvent>
 //#include <QPainter>
 
@@ -23,36 +24,52 @@ void CheckBoxDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
     if (option.state.testFlag(QStyle::State_HasFocus))
         viewOption.state = viewOption.state ^ QStyle::State_HasFocus;
 
-    QStyledItemDelegate::paint(painter, viewOption, index);
-  
-    //if (index.column() == CheckBoxColumn)
-    //{
-    //    Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
+    if (index.column() == CheckBoxColumn)
+    {
+        Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
 
-    //    QStyleOptionButton checkBoxStyle;
-    //    checkBoxStyle.state = checkStat == Qt::CheckState::Checked ? QStyle::State_On : QStyle::State_Off;
-    //    checkBoxStyle.state |= QStyle::State_Enabled;
-    //    checkBoxStyle.iconSize = QSize(20, 20);
-    //    checkBoxStyle.rect = option.rect;
+        QStyleOptionButton checkBoxStyle;
+        checkBoxStyle.state = checkStat == Qt::CheckState::Checked ? QStyle::State_On : QStyle::State_Off;
+        checkBoxStyle.state |= QStyle::State_Enabled;
+        checkBoxStyle.iconSize = QSize(20, 20);
+        checkBoxStyle.rect = option.rect;
 
-    //    QCheckBox checkBox;
-    //    checkBoxStyle.iconSize = QSize(20, 20);
-    //    checkBoxStyle.rect = option.rect;
-    //    QApplication::style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &checkBoxStyle, painter, &checkBox);
-    //}
+        QRadioButton checkBox;
+        checkBoxStyle.iconSize = QSize(20, 20);
+        checkBoxStyle.rect = option.rect;
+        QApplication::style()->drawPrimitive(QStyle::PE_IndicatorRadioButton, &checkBoxStyle, painter, &checkBox);
+    }
+    else {
+        QStyledItemDelegate::paint(painter, viewOption, index);
+    }
 }
 
 bool CheckBoxDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index)
 {
+    QVariant variant = index.data(Qt::UserRole + 3);
+    if (variant.isNull())
+    {
+        return false;
+    }
+    ThumbnailData data = variant.value<ThumbnailData>();
+    if (!data.isWeChatImage)
+    {
+        return false;
+    }
+
     QRect decorationRect = option.rect;
 
     QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-    if (event->type() == QEvent::MouseButtonPress && decorationRect.contains(mouseEvent->pos()))
+    if (decorationRect.contains(mouseEvent->pos()) && index.column() == CheckBoxColumn)
     {
-        if (index.column() == CheckBoxColumn)
+        if (event->type() == QEvent::MouseButtonPress)
         {
             Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
             model->setData(index, checkStat == Qt::CheckState::Checked ? Qt::CheckState::Unchecked : Qt::CheckState::Checked, Qt::CheckStateRole);
+        }
+        else if (event->type() == QEvent::MouseButtonDblClick)
+        {
+            return false;
         }
     }
 

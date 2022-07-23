@@ -120,6 +120,7 @@ void FileWidget::initTableView()
     checkBoxDelegate = new CheckBoxDelegate(this);
     tableView = new QTableView;
     tableView->verticalHeader()->setVisible(false);
+    tableView->horizontalHeader()->setContentsMargins(0, 0, 0, 1);
     // 单行选中
     tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     //// 单选
@@ -132,7 +133,6 @@ void FileWidget::initTableView()
     tableView->setShowGrid(false);
     // 排序
     tableView->setSortingEnabled(true);
-    tableView->setContentsMargins(0, 0, 0, 0);
 
     // view settings
     //tableView->setStyle(QStyleFactory::create("Fusion"));
@@ -192,7 +192,7 @@ void FileWidget::cdPath(const QString& path)
 void FileWidget::initListModel(const QString& path, bool readPixmap) {
     if (nullptr == fileListModel)
     {
-        fileListModel = new FileListModel(ensureIconProvider());
+        fileListModel = new FileListModel(this->imageCore, ensureIconProvider());
         fileListModel->setColumnCount(NumberOfColumns);
 
         proxyModel = new FileFilterProxyModel;

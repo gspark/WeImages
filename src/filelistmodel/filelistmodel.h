@@ -15,11 +15,12 @@ enum FileListViewColumn {
 //enum Type { Dir, File, System };
 
 class QFileIconProvider;
+class ImageCore;
 
 class FileListModel : public QStandardItemModel {
     Q_OBJECT
 public:
-    explicit FileListModel(QFileIconProvider* iconProvider, QObject* parent = nullptr);
+    explicit FileListModel(ImageCore* imageCore, QFileIconProvider* iconProvider, QObject* parent = nullptr);
     ~FileListModel() override;
 
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
@@ -42,5 +43,6 @@ public:
 Q_SIGNALS:
     void onUpdateItems();
 private:
-    QFileIconProvider* m_iconProvider;
+    QFileIconProvider* _iconProvider;
+    ImageCore* _imageCore;
 };
