@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QDir>
 
 #include <algorithm>
 #include <cmath>
@@ -87,4 +88,45 @@ fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString &spacer
 #error "Unknown operating system"
     return true;
 #endif
+}
+
+[[nodiscard]] inline bool isDriveRootPath(const QString& path) {
+    return (path.length() == 3
+        && path.at(0).isLetter() && path.at(1) == QLatin1Char(':')
+        && path.at(2) == QLatin1Char('/'));
+}
+
+#ifdef Q_OS_WIN
+static bool isUncRoot(const QString& server)
+{
+    QString localPath = QDir::toNativeSeparators(server);
+    if (!localPath.startsWith(QLatin1String("\\\\")))
+        return false;
+
+    int idx = localPath.indexOf(QLatin1Char('\\'), 2);
+    if (idx == -1 || idx + 1 == localPath.length())
+        return true;
+
+    return QStringView{ localPath }.right(localPath.length() - idx - 1).trimmed().isEmpty();
+}
+#endif
+
+[[nodiscard]] inline bool isRootPath(const QString& path) noexcept {
+    if (path == QLatin1String("/")
+#if defined(Q_OS_WIN)
+        || isDriveRootPath(path)
+        || isUncRoot(path)
+#endif
+        )
+        return true;
+
+    return false;
+}
+
+[[nodiscard]] inline bool isDrive(const QFileInfo& fileInfo) noexcept {
+    if (isRootPath(fileInfo.absoluteFilePath()))
+    {
+        return true;
+    }
+    return false;
 }

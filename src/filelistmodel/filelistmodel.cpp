@@ -111,6 +111,11 @@ QString FileListModel::type(const QModelIndex& index) const
     return this->m_iconProvider->type(this->fileInfo(index));
 }
 
+QString FileListModel::type(const QFileInfo& fileInfo) const
+{
+    return this->m_iconProvider->type(fileInfo);
+}
+
 QModelIndex FileListModel::index(const QString& path, int column /*= 0*/) const
 {
     return QModelIndex();
@@ -124,6 +129,7 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
         return;
     }
     //this->beginResetModel();
+    this->setRowCount(fileInfos.size());
     int itemRow = 0;
     for (const auto& fileInfo : fileInfos)
     {
@@ -154,7 +160,6 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
         this->setItem(itemRow, DateColumn, dateItem);
         itemRow++;
     }
-    this->setRowCount(itemRow);
     //this->endResetModel();
     //emit onUpdateItems();
 }

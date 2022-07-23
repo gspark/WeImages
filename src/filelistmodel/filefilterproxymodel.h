@@ -14,39 +14,29 @@ class FileFilterProxyModel : public QSortFilterProxyModel
     Q_OBJECT
 
 public:
-    FileFilterProxyModel(int sortColumn = 0);
+    FileFilterProxyModel(int sortColumn = -1);
 
     void enableFilter(bool enable);
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
     QModelIndex proxyIndex(const QString& path, int column = 0) const;
     QFileInfo fileInfo(const QModelIndex& index) const;
-    QFileInfo fileInfoBySource(const QModelIndex& index) const;
-
+    QFileInfo fileInfoByModel(const QModelIndex& index) const;
     QStandardItem* itemFromIndex(const QModelIndex& index) const;
 
-    inline QString fileName(const QModelIndex& index) const;
-
+    int getSortColumn() const;
 protected:
     // filter
     bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
 
+    virtual bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
     // sort
-    bool nameCompare(const QModelIndex& source_left, const QModelIndex& source_right) const;
-    virtual bool lessThan(const QModelIndex& source_left, const QModelIndex& source_right) const override;
-
+    bool nameCompare(const QFileInfo& leftInfo, const QFileInfo& rightInfo) const;
 private:
-    QString type(const QModelIndex& index) const;
-
-    bool useFilter;
-
+    bool _useFilter;
+    int _sortColumn;
     QCollator naturalCompare;
-    int sortColumn;
 };
 
-inline QString FileFilterProxyModel::fileName(const QModelIndex& index) const
-{
-    return index.data(Qt::DisplayRole).toString();
-}
 
 #endif // FILEFILTERPROXYMODEL_H

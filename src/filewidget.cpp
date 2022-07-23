@@ -199,8 +199,9 @@ void FileWidget::updateCurrentPath(const QString& path)
 
 void FileWidget::onUpdateItems()
 {
-    this->tableView->viewport()->update();
-   
+    this->tableView->sortByColumn(this->proxyModel->getSortColumn(), this->proxyModel->sortOrder());
+    //this->tableView->viewport()->update();
+
     if (FileViewType::Table == fileViewType)
     {
         stackedWidget->setCurrentIndex(0);
@@ -240,7 +241,16 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
         //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
     }
     QList<QFileInfo> fileInfos = getRowItemList(path);
+
+    DWORD start = GetTickCount();
+    disconnect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    disconnect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    proxyModel->setSourceModel(nullptr);
     this->fileListModel->updateItems(fileInfos);
+    proxyModel->setSourceModel(fileListModel);
+    connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    LOG_INFO << "updateItems time: " << GetTickCount() - start;
     onUpdateItems();
 }
 

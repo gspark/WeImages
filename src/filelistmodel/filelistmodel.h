@@ -34,6 +34,8 @@ public:
 
     QString type(const QModelIndex& index) const;
 
+    QString type(const QFileInfo& fileInfo) const;
+
     QModelIndex index(const QString& path, int column = 0) const;
 
     void updateItems(const QList<QFileInfo> fileInfos);
