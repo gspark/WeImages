@@ -42,6 +42,7 @@ MainWindow::~MainWindow() {
     savaWindowInfo();
     navDock->deleteLater();
     fileModel->deleteLater();
+    this->deleteLater();
     delete this->imageCore;
 }
 
@@ -114,12 +115,12 @@ void MainWindow::about() {
     static const char message[] =
         "<p><b>WeImages</b></p>"
 
-        "<p>Version:&nbsp;0.1(x64)</p>"
+        "<p>Version:&nbsp;0.0.7.0(x64)</p>"
         "<p>Author:&nbsp;&nbsp;shrill</p>"
         "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022-03-07</p>"
 
         "<p></p>"
-        "<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
+        "<p>github:&nbsp;&nbsp;<a href=\"https://github.com/gspark/WeImages\">https://github.com/gspark/WeImages</a>"
         ;
 
     auto *msgBox = new QMessageBox(this);
