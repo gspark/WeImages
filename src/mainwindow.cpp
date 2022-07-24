@@ -39,6 +39,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
 }
 
 MainWindow::~MainWindow() {
+    savaWindowInfo();
     navDock->deleteLater();
     fileModel->deleteLater();
     delete this->imageCore;
@@ -111,16 +112,15 @@ void MainWindow::setupMenuBar() {
 // show about message
 void MainWindow::about() {
     static const char message[] =
-            "<p><b>WeImages</b></p>"
+        "<p><b>WeImages</b></p>"
 
-            "<p>Version:&nbsp;0.1(x64)</p>"
-            "<p>Author:&nbsp;&nbsp;shrill</p>"
-            "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022-03-07</p>"
+        "<p>Version:&nbsp;0.1(x64)</p>"
+        "<p>Author:&nbsp;&nbsp;shrill</p>"
+        "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022-03-07</p>"
 
-            "<p></p>"
-        //"<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
-//        "<p>Video:&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.bilibili.com/video/BV1ng411L7gx\">BiliBili video</a>"
-    ;
+        "<p></p>"
+        "<p>Project:&nbsp;&nbsp;<a href=\"https://github.com/Jawez/FileManager\">Github repository</a>"
+        ;
 
     auto *msgBox = new QMessageBox(this);
     msgBox->setAttribute(Qt::WA_DeleteOnClose);
@@ -136,8 +136,8 @@ void MainWindow::onCdDir(const QString path)
 }
 
 void MainWindow::loadWindowInfo() {
-    QVariant geometry = ConfigIni::getInstance().iniRead(QStringLiteral("Main/geometry"), "0");
-    if (geometry.isValid() && geometry.toInt() != 0) {
+    QVariant geometry = ConfigIni::getInstance().iniRead(QStringLiteral("Main/geometry"), QVariant());
+    if (geometry.isValid()) {
         bool result = restoreGeometry(geometry.toByteArray());
     } else {
         // resize window
@@ -149,8 +149,18 @@ void MainWindow::loadWindowInfo() {
     if (path.isEmpty()) {
         path = getWeChatImagePath();
     }
+    QFileInfo f(path);
+    if (!f.isDir())
+    {
+        path = getWeChatImagePath();
+    }
     ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
     emit setPath(path);
+}
+
+void MainWindow::savaWindowInfo()
+{
+    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/geometry"), this->saveGeometry());
 }
 
 QString MainWindow::getWeChatImagePath()

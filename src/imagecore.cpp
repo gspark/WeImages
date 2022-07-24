@@ -1,5 +1,4 @@
 #include "imagecore.h"
-#include <random>
 #include <QDir>
 #include <QUrl>
 #include <QSettings>
@@ -21,9 +20,16 @@ ImageCore::ImageCore(QObject* parent) : QObject(parent)
 #endif
     QPixmapCache::setCacheLimit(512000);
 
+    _mineDb = new QMimeDatabase;
+
     connect(&loadFutureWatcher, &QFutureWatcher<ImageReadData>::finished, this, [this]() {
         loadPixmap(loadFutureWatcher.result(), false);
         });
+}
+
+ImageCore::~ImageCore()
+{
+    delete _mineDb;
 }
 
 void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
@@ -78,7 +84,7 @@ ImageReadData ImageCore::readFile(const QString& fileName, bool forCache, const 
 
     QPixmap readPixmap;
     QString extension = fileInfo.suffix();
-    if (isWeChatImage(fileInfo.suffix(), fileInfo.fileName())) {
+    if (this->isWeChatImage(fileInfo)) {
         // wechat picture
         DWORD start = GetTickCount();
         BYTE* imageData = datConverImage(fileName, fileInfo.size(), &extension);
@@ -139,11 +145,6 @@ ImageReadData ImageCore::readFile(const QString& fileName, bool forCache, const 
     return readData;
 }
 
-//ImageCore::ReadData ImageCore::readFileSize(const QString& fileName, bool forCache, const QSize& targetSize)
-//{
-//
-//}
-
 void ImageCore::loadPixmap(const ImageReadData& readData, bool fromCache)
 {
     if (readData.pixmap.isNull())
@@ -165,28 +166,21 @@ void ImageCore::addToCache(const ImageReadData &readData)
 
 bool ImageCore::isImageFile(const QFileInfo& fileInfo)
 {
-    if (fileInfo.suffix() == "dat" && fileInfo.baseName().length() == 32)
+    if (isWeChatImage(fileInfo))
     {
         // wechat picture
         return true;
     }
-    QMimeDatabase db;
-    QMimeType mime = db.mimeTypeForFile(fileInfo);
-    if (mime.name().startsWith("image/"))
-    {
-        return true;
-    }
-    return false;
+    
+    QMimeType mime = _mineDb->mimeTypeForFile(fileInfo);
+    
+    return mime.name().startsWith("image/");
 }
 
-bool ImageCore::isWeChatImage(const QString& extension, const QString& fileName)
+bool ImageCore::isWeChatImage(const QFileInfo& fileInfo)
 {
-    if (extension == "dat" && fileName.length() == 36)
-    {
-        // wechat
-        return true;
-    }
-    return false;
+    LOG_INFO << "isWeChatImage suffix:" << fileInfo.suffix() << " baseName: " << fileInfo.baseName();
+    return fileInfo.suffix() == "dat" && fileInfo.baseName().length() == 32;
 }
 
 QStringList ImageCore::imageFileNames()

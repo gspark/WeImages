@@ -12,9 +12,9 @@ public:
 
 private:
     //QStandardItem *m_image;
-    const FileFilterProxyModel* m_model;
+    const FileFilterProxyModel* _model;
 
-    QModelIndex m_image;
+    QModelIndex _image;
 
 public:
     int count();

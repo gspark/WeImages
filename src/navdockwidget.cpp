@@ -93,8 +93,8 @@ void NavDockWidget::onSetPath(const QString path)
 {
     QModelIndex index = this->proxyModel->proxyIndex(path);
     this->treeView->setCurrentIndex(index);
+    emit treeViewClicked(path);
     this->treeView->scrollTo(index);
-    this->onTreeViewClicked(index);
 }
 
 void NavDockWidget::onCdDir(const QString path)

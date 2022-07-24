@@ -27,12 +27,15 @@ struct ImageReadData
 // 自定义数据类型需注册才能放入QVariant
 Q_DECLARE_METATYPE(ImageReadData);
 
+class QMimeDatabase;
+
 class ImageCore : public QObject
 {
     Q_OBJECT
 
 public:
     explicit ImageCore(QObject* parent = nullptr);
+    ~ImageCore();
 
     //************************************
     // Method:    loadFile
@@ -51,11 +54,13 @@ public:
 
     QStringList imageFileNames();
 
-    bool isWeChatImage(const QString& extension, const QString& fileName);
+    bool isWeChatImage(const QFileInfo& fileInfo);
 
 signals:
     void imageLoaded(ImageReadData* readData);
 private:
+    QMimeDatabase* _mineDb;
+
     QFutureWatcher<ImageReadData> loadFutureWatcher;
 
     BYTE* datConverImage(const QString& datFileName, long long fileSize, QString* extension);

@@ -1,5 +1,5 @@
 //
-// Created by Spark on 2021-04-20.
+// Created by shrill on 2021-04-20.
 //
 
 #ifndef CRYPTOOL_CONFIG_H

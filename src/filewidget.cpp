@@ -8,7 +8,7 @@
 #include "models/imageswitcher.h"
 #include "delegate/checkBoxDelegate.h"
 #include "filelistmodel/filelistmodel.h"
-
+#include "config.h"
 #include "iconhelper.h"
 
 #include <QApplication>
@@ -29,18 +29,15 @@
 #include <QMimeType>
 
 
-FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWidget* parent) : QWidget(parent) {
+FileWidget::FileWidget(ImageCore* imageCore, QWidget* parent) : 
+    QWidget(parent), _imageCore(imageCore) {
 
-    this->imageCore = imageCore;
     this->m_iconProvider = nullptr;
     this->thumbnailModel = nullptr;
     this->fileListModel = nullptr;
     this->proxyModel = nullptr;
 
     this->fileViewType = FileViewType::Table;
-
-    //// init file model
-    //fileSystemMode = (QFileSystemModel*)model;
 
     initIconFont();
 
@@ -52,9 +49,11 @@ FileWidget::FileWidget(/*QAbstractItemModel* model, */ImageCore* imageCore, QWid
     checkBoxDelegate = nullptr;
     initListView();
     initWidgetLayout();
+    loadFileListInfo();
 }
 
 FileWidget::~FileWidget() {
+    saveFileListInfo();
     if (nullptr != thumbnailDelegate)
     {
         delete thumbnailDelegate;
@@ -148,7 +147,7 @@ void FileWidget::initThumbnailView()
     {
         return;
     }
-    thumbnailDelegate = new ThumbnailDelegate(this->imageCore, this);
+    thumbnailDelegate = new ThumbnailDelegate(this->_imageCore, this);
 
     thumbnailView = new QListView(this);
     thumbnailView->setContentsMargins(0, 0, 0, 0);
@@ -192,7 +191,7 @@ void FileWidget::cdPath(const QString& path)
 void FileWidget::initListModel(const QString& path, bool readPixmap) {
     if (nullptr == fileListModel)
     {
-        fileListModel = new FileListModel(this->imageCore, ensureIconProvider());
+        fileListModel = new FileListModel(this->_imageCore, ensureIconProvider());
         fileListModel->setColumnCount(NumberOfColumns);
 
         proxyModel = new FileFilterProxyModel;
@@ -200,7 +199,7 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
 
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
-        //tableView->sortByColumn(1, Qt::SortOrder::AscendingOrder);
+        tableView->sortByColumn(this->_sortColumn, Qt::SortOrder(this->_sortOrder));
         //tableView->setAlternatingRowColors(true);
         //tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
         //setTableColWidth();
@@ -248,7 +247,7 @@ void FileWidget::onUpdateItems()
 void FileWidget::setTableColWidth()
 {
     tableView->setColumnWidth(0, 18);
-    tableView->setColumnWidth(1, tableView->size().width() - 18 - 90 - 137 - 32);
+    tableView->setColumnWidth(1, this->_column1w);
     tableView->setColumnWidth(2, 90);
     tableView->setColumnWidth(3, 137);
 }
@@ -271,13 +270,13 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
             }
 
             auto itemData = variant.value<ThumbnailData>();
-            itemData.isWeChatImage = this->imageCore->isWeChatImage(itemData.fileInfo.suffix(), itemData.fileInfo.fileName());
+            itemData.isWeChatImage = this->_imageCore->isWeChatImage(itemData.fileInfo);
 
             if (readPixmap)
             {
-                if (this->imageCore->isImageFile(itemData.fileInfo))
+                if (this->_imageCore->isImageFile(itemData.fileInfo))
                 {
-                    ImageReadData image = imageCore->readFile(itemData.fileInfo.absoluteFilePath(), true);
+                    ImageReadData image = _imageCore->readFile(itemData.fileInfo.absoluteFilePath(), true);
                     itemData.thumbnail = image.pixmap;
                 }
                 else {
@@ -321,7 +320,8 @@ void FileWidget::selectAll()
     {
         auto item = fileListModel->item(r);
         auto fileInfo = fileListModel->fileInfo(item);
-        if (fileInfo.suffix() == "dat" && fileInfo.fileName().length() == 36)
+        
+        if (this->_imageCore->isWeChatImage(fileInfo))
         {
             // wechat
             item->setCheckState(Qt::CheckState::Checked);
@@ -344,13 +344,16 @@ void FileWidget::exportSelected()
     if (!selects.isEmpty())
     {
         QString directory = QFileDialog::getExistingDirectory(this, tr("open directory"), QDir::currentPath());
-        QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
-            const ImageReadData& readData = this->imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
-            QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
-            LOG_INFO << "export file: " << file;
-            return readData.pixmap.save(file);
-            });
-        future.waitForFinished();
+        if (directory != "")
+        {
+            QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
+                const ImageReadData& readData = this->_imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
+                QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
+                LOG_INFO << "export file: " << file;
+                return readData.pixmap.save(file);
+                });
+            future.waitForFinished();
+        }
     }
 }
 
@@ -358,8 +361,7 @@ void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex&
     QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
     LOG_INFO << "onCurrentChanged fileInfo: " << info;
     if (info.isFile()) {
-        // TODO background
-        this->imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
+        this->_imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
     }
 }
 
@@ -390,9 +392,11 @@ void FileWidget::onFileDoubleClicked(const QModelIndex& index)
         emit cdDir(target);
         return;
     }
-
-    ImageViewer* slideshow = new ImageViewer(this->imageCore, new ImageSwitcher(clicked, this->proxyModel));
-    slideshow->show();
+    if (this->_imageCore->isImageFile(info))
+    {
+        ImageViewer* slideshow = new ImageViewer(this->_imageCore, new ImageSwitcher(clicked, this->proxyModel));
+        slideshow->show();
+    }
 }
 
 void FileWidget::onTreeViewClicked(const QString& path)
@@ -405,13 +409,9 @@ void FileWidget::onTreeViewClicked(const QString& path)
 QList<QFileInfo> FileWidget::getRowItemList(const QString& currentDirPath)
 {
     QList<QFileInfo> list;
-    //{
-        //std::lock_guard<std::recursive_mutex> locker(_fileListAndCurrentDirMutex);
     list = QDir{ currentDirPath }.entryInfoList(
         QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System, QDir::NoSort);
-    //}
     return list;
-
 }
 
 QList<QStandardItem*> FileWidget::getRowItemList()
@@ -426,5 +426,23 @@ QList<QStandardItem*> FileWidget::getRowItemList()
         }
     }
     return list;
+}
+
+void FileWidget::loadFileListInfo()
+{
+    _sortColumn = ConfigIni::getInstance().iniRead(QStringLiteral("FileList/sortColumn"), "-1").toInt();
+    _sortOrder = ConfigIni::getInstance().iniRead(QStringLiteral("FileList/sortOrder"), "0").toInt();
+    _column1w = ConfigIni::getInstance().iniRead(QStringLiteral("FileList/column1w"), "256").toInt();
+    if (_column1w <= 0)
+    {
+        _column1w = 256;
+    }
+}
+
+void FileWidget::saveFileListInfo()
+{
+    ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortColumn"), this->proxyModel->sortColumn());
+    ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortOrder"), this->proxyModel->sortOrder());
+    ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/column1w"), this->tableView->columnWidth(1));
 }
 

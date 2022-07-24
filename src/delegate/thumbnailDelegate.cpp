@@ -23,14 +23,12 @@
 
 
 ThumbnailDelegate::ThumbnailDelegate(ImageCore* imageCore, QObject* parent) :
-    QStyledItemDelegate(parent)
+    QStyledItemDelegate(parent), _imageCore(imageCore)
 {
-    this->imageCore = imageCore;
 }
 
 ThumbnailDelegate::~ThumbnailDelegate()
 {
-
 }
 
 void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -81,12 +79,18 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
         painter->drawPath(path);
     }
 
+    Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
+    if (checkStat == Qt::CheckState::Checked)
+    {
+        painter->setPen(QPen(Qt::blue));
+        painter->setBrush(QColor(229, 241, 255));
+        painter->drawPath(path);
+    }
+
     //绘制按钮
     QStyleOptionButton cbOpt;
     QRect buttonRect(rect.left() + 10, rect.top() + 4, 16, 16);
     cbOpt.rect = buttonRect;
-    Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
-   
     cbOpt.state |= checkStat == Qt::CheckState::Checked ? QStyle::State_On : QStyle::State_Off;
     if (data.isWeChatImage)
     {

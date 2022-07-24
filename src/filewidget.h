@@ -50,7 +50,7 @@ public slots:
     void onTreeViewClicked(const QString& path);
 
 private:
-    ImageCore* imageCore;
+    ImageCore* _imageCore;
 
     QToolBar* toolBar;
 
@@ -106,6 +106,13 @@ private:
     QList<QFileInfo> getRowItemList(const QString& currentDirPath);
 
     QList<QStandardItem*> getRowItemList();
+
+
+    int _sortColumn;
+    int _sortOrder;
+    int _column1w;
+    void loadFileListInfo();
+    void saveFileListInfo();
  
 private slots:
 

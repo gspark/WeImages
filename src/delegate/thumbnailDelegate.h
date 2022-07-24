@@ -24,7 +24,7 @@ protected:
     bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index) override;
 
 private:
-    ImageCore* imageCore;
+    ImageCore* _imageCore;
 };
 
 #endif // THUMBNAILDELEGATE_H

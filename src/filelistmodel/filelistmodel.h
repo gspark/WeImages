@@ -3,16 +3,9 @@
 #include <QStandardItemModel>
 #include <QFileInfo>
 
-enum Role {
-    FullNameRole = Qt::UserRole + 1
-};
-
 enum FileListViewColumn {
-    //CheckBoxColumn, NameColumn, ExtColumn, SizeColumn, DateColumn, NumberOfColumns
     CheckBoxColumn, NameColumn, SizeColumn, DateColumn, NumberOfColumns
 };
-
-//enum Type { Dir, File, System };
 
 class QFileIconProvider;
 class ImageCore;

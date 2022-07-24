@@ -1,9 +1,6 @@
 ﻿#include "iconhelper.h"
 
-IconHelper *IconHelper::iconFontAliBaBa = 0;
-IconHelper *IconHelper::iconFontAwesome = 0;
 IconHelper *IconHelper::iconFontAwesome6 = 0;
-IconHelper *IconHelper::iconFontWeather = 0;
 int IconHelper::iconFontIndex = -1;
 
 void IconHelper::initFont()
@@ -11,18 +8,9 @@ void IconHelper::initFont()
     static bool isInit = false;
     if (!isInit) {
         isInit = true;
-        //if (iconFontAliBaBa == 0) {
-        //    iconFontAliBaBa = new IconHelper(":/font/iconfont.ttf", "iconfont");
-        //}
-        //if (iconFontAwesome == 0) {
-        //    iconFontAwesome = new IconHelper(":/font/fontawesome-webfont.ttf", "FontAwesome");
-        //}
         if (iconFontAwesome6 == 0) {
             iconFontAwesome6 = new IconHelper(":/font/fa-regular-400.ttf", "Font Awesome 6 Pro Regular");
         }
-        //if (iconFontWeather == 0) {
-        //    iconFontWeather = new IconHelper(":/font/pe-icon-set-weather.ttf", "pe-icon-set-weather");
-        //}
     }
 }
 
@@ -31,57 +19,16 @@ void IconHelper::setIconFontIndex(int index)
     iconFontIndex = index;
 }
 
-QFont IconHelper::getIconFontAliBaBa()
-{
-    initFont();
-    return iconFontAliBaBa->getIconFont();
-}
-
-QFont IconHelper::getIconFontAwesome()
-{
-    initFont();
-    return iconFontAwesome->getIconFont();
-}
-
 QFont IconHelper::getIconFontAwesome6()
 {
     initFont();
     return iconFontAwesome6->getIconFont();
 }
 
-QFont IconHelper::getIconFontWeather()
-{
-    initFont();
-    return iconFontWeather->getIconFont();
-}
-
 IconHelper *IconHelper::getIconHelper(int icon)
 {
     initFont();
-
-    //指定了字体索引则取对应索引的字体类
-    //没指定则自动根据不同的字体的值选择对应的类
-    //由于部分值范围冲突所以可以指定索引来取
-    //fontawesome   0xf000-0xf2e0
-    //fontawesome6  0xe000-0xe33d 0xf000-0xf8ff
-    //iconfont      0xe501-0xe793 0xe8d5-0xea5d
-    //weather       0xe900-0xe9cf
-
-    IconHelper *iconHelper = iconFontAwesome;
-    if (iconFontIndex < 0) {
-        if ((icon > 0xe501 && icon < 0xe793) || (icon > 0xe8d5 && icon < 0xea5d)) {
-            iconHelper = iconFontAliBaBa;
-        }
-    } else if (iconFontIndex == 0) {
-        iconHelper = iconFontAliBaBa;
-    } else if (iconFontIndex == 1) {
-        iconHelper = iconFontAwesome;
-    } else if (iconFontIndex == 2) {
-        iconHelper = iconFontAwesome6;
-    } else if (iconFontIndex == 3) {
-        iconHelper = iconFontWeather;
-    }
-
+    IconHelper *iconHelper = iconFontAwesome6;
     return iconHelper;
 }
 

@@ -41,6 +41,7 @@ private:
     void setupWidgets();
 
     void loadWindowInfo();
+    void savaWindowInfo();
 
     QString getWeChatImagePath();
 

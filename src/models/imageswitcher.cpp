@@ -1,45 +1,42 @@
 #include "imageswitcher.h"
 #include "../delegate/thumbnailData.h"
-#include "../logger/Logger.h"
 
 ImageSwitcher::ImageSwitcher(const QModelIndex& current, const FileFilterProxyModel* model)
+    :_image(current), _model(model)
 {
-    m_image = current;
-    m_model = model;
 }
 
 QFileInfo ImageSwitcher::getImage()
 {
-    return m_model->fileInfo(m_image);
+    return _model->fileInfo(_image);
 }
-
 
 int ImageSwitcher::count()
 {
-    return m_model->rowCount();
+    return _model->rowCount();
 }
 
 int ImageSwitcher::currIndex()
 {
-    return m_image.row();
+    return _image.row();
 }
 
 QFileInfo ImageSwitcher::previous() {
-    if (m_image.row() <= 0) {
-        m_image = m_model->index(m_model->rowCount() - 1, 0);
+    if (_image.row() <= 0) {
+        _image = _model->index(_model->rowCount() - 1, 0);
     }
     else {
-        m_image = m_model->index(m_image.row() - 1, 0);
+        _image = _model->index(_image.row() - 1, 0);
     }
     return getImage();
 }
 
 QFileInfo ImageSwitcher::next() {
-    if (m_image.row() >= m_model->rowCount() - 1) {
-        m_image = m_model->index(0, 0);
+    if (_image.row() >= _model->rowCount() - 1) {
+        _image = _model->index(0, 0);
     }
     else {
-        m_image = m_model->index(m_image.row() + 1, 0);
+        _image = _model->index(_image.row() + 1, 0);
     }
     return getImage();
 }

@@ -7,6 +7,7 @@ class ImageCore;
 class ImageSwitcher;
 class QLabel;
 class QScrollArea;
+class QAction;
 
 class ImageViewer : public QMainWindow
 {
@@ -17,16 +18,9 @@ public:
     ~ImageViewer();
 
 private slots:
-    //void on_selectHomeDir_clicked();
-    //void on_selectImageFile_clicked();
     void on_readPrevImage_clicked();
     void on_readNextImage_clicked();
-    //void on_refreshImage_clicked();
-    //void on_rotateImage_clicked();
-    //void on_flipImage_clicked();
-    //void on_zoomInImage_clicked();
-    //void on_zoomOutImage_clicked();
-    //void on_extendImage_clicked();
+    void on_exportImage_clicked();
 
 private:
     //界面对象
@@ -39,8 +33,10 @@ private:
     QLabel *imageSizeLabel;//图片尺寸Label
     QLabel *imageScaleLabel;//图片缩放比Label
 
-    ImageSwitcher* imageSwitcher;
-    ImageCore* imageCore;
+    QAction* _exportImageAct;
+
+    ImageSwitcher* _imageSwitcher;
+    ImageCore* _imageCore;
 
     //QSize imgSize;//图片尺寸
     //double scaleVar;//缩放比
@@ -54,10 +50,6 @@ private:
     void displayImage(QString absoluteFilePath);
 
     double computeScaleWithView(const QPixmap& pixmap);
-
-    //void zoomInImage();
-    //void zoomOutImage();
-    //void extendImage();
 
     void keyPressEvent(QKeyEvent *event);//按键事件
 protected:

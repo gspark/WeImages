@@ -15,43 +15,6 @@ FileListModel::~FileListModel() = default;
 
 QVariant FileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const {
     return QStandardItemModel::data(index, role);
-
-    /*if (!index.isValid())
-        return QVariant();
-
-    QVariant variant = index.data(Qt::DisplayRole);
-    if (variant.isNull())
-    {
-        return QVariant();
-    }
-    ThumbnailData data = variant.value<ThumbnailData>();
-
-    switch (role)
-    {
-    case Qt::TextAlignmentRole:
-        return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
-    case Qt::DisplayRole:
-    {
-        switch (index.column())
-        {
-        NameColumn:
-            return data.fileName;
-        ExtColumn:
-            return data.extension;
-        default:
-            return QVariant();
-        }
-    }
-    case Qt::CheckStateRole:
-    {
-        if (index.column() == CheckBoxColumn)
-            return true;
-    }
-    default:
-        return QVariant();
-    }
-
-    return QVariant();*/
 }
 
 bool FileListModel::setData(const QModelIndex & index, const QVariant & value, int role) {
@@ -136,7 +99,7 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
     for (const auto& fileInfo : fileInfos)
     {
         ThumbnailData data;
-        data.isWeChatImage = this->_imageCore->isWeChatImage(fileInfo.suffix(), fileInfo.fileName());
+        data.isWeChatImage = this->_imageCore->isWeChatImage(fileInfo);
         data.fileInfo = fileInfo;
     
         auto checkBoxItem = new QStandardItem();
@@ -165,3 +128,4 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
     //this->endResetModel();
     //emit onUpdateItems();
 }
+
