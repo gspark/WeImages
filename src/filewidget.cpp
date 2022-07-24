@@ -39,8 +39,6 @@ FileWidget::FileWidget(ImageCore* imageCore, QWidget* parent) :
 
     this->fileViewType = FileViewType::Table;
 
-    initIconFont();
-
     // widget init
     setupToolBar();
     tableView = nullptr;
@@ -195,17 +193,13 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
         fileListModel->setColumnCount(NumberOfColumns);
 
         proxyModel = new FileFilterProxyModel;
-        //proxyModel->setSourceModel(fileListModel);
-
+   
         thumbnailView->setModel(proxyModel);
         tableView->setModel(proxyModel);
-        tableView->sortByColumn(this->_sortColumn, Qt::SortOrder(this->_sortOrder));
-        //tableView->setAlternatingRowColors(true);
-        //tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
-        //setTableColWidth();
 
+        tableView->sortByColumn(this->_sortColumn, Qt::SortOrder(this->_sortOrder));
+        tableView->setAlternatingRowColors(true);
         //tableView->setFont(QFont("Fixedsys", 8));
-        // must after setModel 
         //connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
         //connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
         //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
@@ -218,8 +212,10 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
     proxyModel->setSourceModel(nullptr);
     this->fileListModel->updateItems(fileInfos);
     proxyModel->setSourceModel(fileListModel);
+    // must after setModel 
     connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
     connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
+    tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
     LOG_INFO << "updateItems time: " << GetTickCount() - start;
 }
 
@@ -360,14 +356,12 @@ void FileWidget::exportSelected()
 void FileWidget::onCurrentChanged(const QModelIndex& current, const QModelIndex& previous) {
     QFileInfo info = proxyModel->fileInfo(current.siblingAtColumn(0));
     LOG_INFO << "onCurrentChanged fileInfo: " << info;
-    if (info.isFile()) {
+    if (info.isFile() && this->_imageCore->isImageFile(info)) {
         this->_imageCore->loadFile(info.absoluteFilePath(), QSize(THUMBNAIL_WIDE_N, THUMBNAIL_HEIGHT_N));
     }
-}
-
-void FileWidget::initIconFont()
-{
-    IconHelper::setIconFontIndex(2);
+    else {
+        emit this->_imageCore->imageLoaded(nullptr);
+    }
 }
 
 void FileWidget::onFileDoubleClicked(const QModelIndex& index)

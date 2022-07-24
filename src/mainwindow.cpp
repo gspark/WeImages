@@ -195,6 +195,10 @@ QString MainWindow::getWeChatImagePath()
 
 void MainWindow::imageLoaded(ImageReadData* readData)
 {
+    if (nullptr == readData)
+    {
+        return;
+    }
     filePathLabel->setText(readData->fileInfo.absoluteFilePath());
     fileSizeLabel->setText(fileSizeToString(readData->fileInfo.size()));
 }

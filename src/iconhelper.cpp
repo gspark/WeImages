@@ -1,7 +1,6 @@
 ﻿#include "iconhelper.h"
 
 IconHelper *IconHelper::iconFontAwesome6 = 0;
-int IconHelper::iconFontIndex = -1;
 
 void IconHelper::initFont()
 {
@@ -12,11 +11,6 @@ void IconHelper::initFont()
             iconFontAwesome6 = new IconHelper(":/font/fa-regular-400.ttf", "Font Awesome 6 Pro Regular");
         }
     }
-}
-
-void IconHelper::setIconFontIndex(int index)
-{
-    iconFontIndex = index;
 }
 
 QFont IconHelper::getIconFontAwesome6()

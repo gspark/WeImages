@@ -101,8 +101,6 @@ private:
 
     void onCurrentChanged(const QModelIndex& current, const QModelIndex& previous);
 
-    void initIconFont();
-
     QList<QFileInfo> getRowItemList(const QString& currentDirPath);
 
     QList<QStandardItem*> getRowItemList();

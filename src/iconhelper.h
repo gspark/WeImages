@@ -13,8 +13,6 @@ class IconHelper : public QObject
 private:
     //FontAwesome6图形字体类
     static IconHelper *iconFontAwesome6;
-    //图形字体索引
-    static int iconFontIndex;
 
 public:
     //样式颜色结构体
@@ -78,8 +76,8 @@ public:
 
     //初始化图形字体
     static void initFont();
-    //设置引用图形字体文件索引
-    static void setIconFontIndex(int index);
+    ////设置引用图形字体文件索引
+    //static void setIconFontIndex(int index);
 
     //获取图形字体
     static QFont getIconFontAwesome6();

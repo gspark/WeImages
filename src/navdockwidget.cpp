@@ -105,7 +105,14 @@ void NavDockWidget::onCdDir(const QString path)
 
 void NavDockWidget::imageLoaded(ImageReadData* readData)
 {
-    this->thumbnail->setPixmap(readData->pixmap);
-    this->thumbnail->setVisible(true);
+    if (nullptr == readData)
+    {
+        this->thumbnail->setVisible(false);
+    }
+    else
+    {
+        this->thumbnail->setPixmap(readData->pixmap);
+        this->thumbnail->setVisible(true);
+    }
 }
 
