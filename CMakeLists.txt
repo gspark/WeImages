@@ -10,7 +10,7 @@ set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windo
 #SET(CMAKE_BUILD_TYPE Release)
 #SET(CMAKE_BUILD_TYPE Debug)
 
-add_definitions(-D_AMD64_)
+# add_definitions(-D_AMD64_)
 
 if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
