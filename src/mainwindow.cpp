@@ -120,7 +120,7 @@ void MainWindow::about() {
         strProductVersion = "0.7";
         strFileVersion = "0.7";
     }
-    AboutDialog::show(this, tr("About") + "WeImages ", "WeImages", strProductVersion);
+    AboutDialog::show(this, tr("About") + " WeImages ", "WeImages", strProductVersion);
 }
 
 void MainWindow::onCdDir(const QString path)
