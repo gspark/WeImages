@@ -8,6 +8,11 @@
 #include <cstdint>
 #include <vector>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
+
 [[nodiscard]] inline constexpr char nativeSeparator() noexcept {
 #ifdef _WIN32
     return '\\';
@@ -49,7 +54,7 @@ fileSizeToString(uint64_t size, const char maxUnit = '\0', const QString &spacer
                                                  {'K', KB},
                                                  {'M', MB}};
     const unsigned int maxUnitSize =
-            unitCodes.count(maxUnit) > 0 ? unitCodes.at(maxUnit) : std::numeric_limits<unsigned int>::max();
+            unitCodes.count(maxUnit) > 0 ? unitCodes.at(maxUnit) : (std::numeric_limits<unsigned int>::max)();
 
     QString str;
     float n = 0.0f;
@@ -130,3 +135,76 @@ static bool isUncRoot(const QString& server)
     }
     return false;
 }
+
+#ifdef _WIN32
+[[nodiscard]] inline bool getFileVersionInfo(const QString& fileName, QString& strProductVersion, QString& strFileVersion) noexcept {
+    std::wstring wPath = fileName.toStdWString();
+    LPCWSTR str_path = wPath.c_str();
+    DWORD vHandle = 0;
+    DWORD dwLen = GetFileVersionInfoSize(str_path, &vHandle);
+    if (0 == dwLen) {
+        return false;
+    }
+    char* lpData = (char*)malloc(dwLen + 1);
+    if (NULL == lpData) {
+        return false;
+    }
+    bool ret = false;
+    do {
+        // ProductVersion
+        BOOL bSuccess = GetFileVersionInfo(str_path, 0, dwLen + 1, lpData);
+        if (!bSuccess) {
+            break;
+        }
+
+        LPVOID lpBuffer = NULL;
+        UINT uLen = 0;
+
+        //获得语言和代码页(language and code page)
+        bSuccess = VerQueryValue(lpData,
+            (TEXT("\\VarFileInfo\\Translation")),
+            &lpBuffer,
+            &uLen);
+        if (!bSuccess) {
+            break;
+        }
+        QString strTranslation, str1, str2;
+        unsigned short int* p = (unsigned short int*)lpBuffer;
+        str1.setNum(*p, 16);
+        str1 = "000" + str1;
+        strTranslation += str1.mid(str1.size() - 4, 4);
+        str2.setNum(*(++p), 16);
+        str2 = "000" + str2;
+        strTranslation += str2.mid(str2.size() - 4, 4);
+
+        // 获得文件说明：FileDescription ...
+        // 获得 ProductVersion
+        QString code = "\\StringFileInfo\\" + strTranslation + "\\ProductVersion";
+        bSuccess = VerQueryValue(lpData,
+            (code.toStdWString().c_str()),
+            &lpBuffer,
+            &uLen);
+        if (!bSuccess) {
+            break;
+        }
+        strProductVersion = QString::fromUtf16((const unsigned short int*)lpBuffer);
+
+        // FileVersion
+        lpBuffer = NULL;
+        uLen = 0;
+        code = "\\StringFileInfo\\" + strTranslation + "\\FileVersion";
+        bSuccess = VerQueryValue(lpData, (code.toStdWString().c_str()), &lpBuffer, &uLen);
+        if (!bSuccess) {
+            //DWORD err = GetLastError();
+            break;
+        }
+        strFileVersion = QString::fromUtf16((const unsigned short int*)lpBuffer);
+        ret = true;
+    } while (false);
+    free(lpData);
+    lpData = NULL;
+    return ret;
+}
+
+#endif
+

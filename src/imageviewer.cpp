@@ -63,20 +63,20 @@ void ImageViewer::initToolBar(){
 
     IconHelper::StyleColor styleColor;
 
-    QAction *prevImageAct = new QAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61751, 16, 16, 16)), tr("&Previous"), this);
+    QAction *prevImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61751, 16, 16, 16)), tr("&Previous"), this);
     prevImageAct->setShortcuts(QKeySequence::New);
     connect(prevImageAct, &QAction::triggered, this, &ImageViewer::on_readPrevImage_clicked);
     fileToolBar->addAction(prevImageAct);
 
     //const QIcon nextImageIcon = QIcon::fromTheme("document-new", QIcon(":/images/Next.png"));
-    QAction *nextImageAct = new QAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61752, 16, 16, 16)), tr("&Next"), this);
+    QAction *nextImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61752, 16, 16, 16)), tr("&Next"), this);
     nextImageAct->setShortcuts(QKeySequence::New);
     connect(nextImageAct, &QAction::triggered, this, &ImageViewer::on_readNextImage_clicked);
     fileToolBar->addAction(nextImageAct);
 
     fileToolBar->addSeparator();
 
-    _exportImageAct = new QAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("&export"), this);
+    _exportImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("&export"), this);
     connect(_exportImageAct, &QAction::triggered, this, &ImageViewer::on_exportImage_clicked);
     fileToolBar->addAction(_exportImageAct);
     _exportImageAct->setEnabled(false);
@@ -85,7 +85,7 @@ void ImageViewer::initToolBar(){
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     fileToolBar->addWidget(spacer);
 
-    QAction* closeAct = new QAction(QIcon(IconHelper::getPixmap(styleColor.normalBgColor, 61527, 16, 16, 16)), tr("&close"), this);
+    QAction* closeAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61527, 16, 16, 16)), tr("&close"), this);
     closeAct->setShortcuts(QKeySequence::New);
     connect(closeAct, &QAction::triggered, this, &ImageViewer::close);
     fileToolBar->addAction(closeAct);

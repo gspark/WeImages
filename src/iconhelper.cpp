@@ -1,74 +1,53 @@
 ﻿#include "iconhelper.h"
 
-IconHelper *IconHelper::iconFontAwesome6 = 0;
-
-void IconHelper::initFont()
+IconHelper& IconHelper::getInstance()
 {
-    static bool isInit = false;
-    if (!isInit) {
-        isInit = true;
-        if (iconFontAwesome6 == 0) {
-            iconFontAwesome6 = new IconHelper(":/font/fa-regular-400.ttf", "Font Awesome 6 Pro Regular");
-        }
-    }
-}
-
-QFont IconHelper::getIconFontAwesome6()
-{
-    initFont();
-    return iconFontAwesome6->getIconFont();
-}
-
-IconHelper *IconHelper::getIconHelper(int icon)
-{
-    initFont();
-    IconHelper *iconHelper = iconFontAwesome6;
-    return iconHelper;
+    static IconHelper instance(":/font/fa-regular-400.ttf", "Font Awesome 6 Pro Regular");
+    return instance;
 }
 
 void IconHelper::setIcon(QLabel *lab, int icon, quint32 size)
 {
-    getIconHelper(icon)->setIcon1(lab, icon, size);
+    this->setIcon1(lab, icon, size);
 }
 
 void IconHelper::setIcon(QAbstractButton *btn, int icon, quint32 size)
 {
-    getIconHelper(icon)->setIcon1(btn, icon, size);
+    this->setIcon1(btn, icon, size);
 }
 
 void IconHelper::setPixmap(QAbstractButton *btn, const QColor &color, int icon, quint32 size,
                            quint32 width, quint32 height, int flags)
 {
-    getIconHelper(icon)->setPixmap1(btn, color, icon, size, width, height, flags);
+    this->setPixmap1(btn, color, icon, size, width, height, flags);
 }
 
 QPixmap IconHelper::getPixmap(const QColor &color, int icon, quint32 size,
                               quint32 width, quint32 height, int flags)
 {
-    return getIconHelper(icon)->getPixmap1(color, icon, size, width, height, flags);
+    return this->getPixmap1(color, icon, size, width, height, flags);
 }
 
 void IconHelper::setStyle(QWidget *widget, QList<QPushButton *> btns,
                           QList<int> icons, const IconHelper::StyleColor &styleColor)
 {
     int icon = icons.first();
-    getIconHelper(icon)->setStyle1(widget, btns, icons, styleColor);
+    this->setStyle1(widget, btns, icons, styleColor);
 }
 
 void IconHelper::setStyle(QWidget *widget, QList<QToolButton *> btns,
                           QList<int> icons, const IconHelper::StyleColor &styleColor)
 {
     int icon = icons.first();
-    getIconHelper(icon)->setStyle1(widget, btns, icons, styleColor);
+    this->setStyle1(widget, btns, icons, styleColor);
 }
 
 void IconHelper::setStyle(QWidget *widget, QList<QAbstractButton *> btns,
                           QList<int> icons, const IconHelper::StyleColor &styleColor)
 {
     int icon = icons.first();
-    getIconHelper(icon)->setStyle1(widget, btns, icons, styleColor);
+    this->setStyle1(widget, btns, icons, styleColor);
 }
-
 
 IconHelper::IconHelper(const QString &fontFile, const QString &fontName, QObject *parent) : QObject(parent)
 {

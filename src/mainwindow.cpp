@@ -3,6 +3,7 @@
 #include "config.h"
 #include "navdockwidget.h"
 #include "filesystemhelperfunctions.h"
+#include "aboutdialog.h"
 
 #include <QApplication>
 #include <QAction>
@@ -112,22 +113,14 @@ void MainWindow::setupMenuBar() {
 
 // show about message
 void MainWindow::about() {
-    static const char message[] =
-        "<p><b>WeImages</b></p>"
-
-        "<p>Version:&nbsp;0.0.7.0(x64)</p>"
-        "<p>Author:&nbsp;&nbsp;shrill</p>"
-        "<p>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2022-03-07</p>"
-
-        "<p></p>"
-        "<p>github:&nbsp;&nbsp;<a href=\"https://github.com/gspark/WeImages\">https://github.com/gspark/WeImages</a>"
-        ;
-
-    auto *msgBox = new QMessageBox(this);
-    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-    msgBox->setWindowTitle(tr("About"));
-    msgBox->setText(message);
-    msgBox->exec();
+    QString strProductVersion;
+    QString strFileVersion;
+    if (!getFileVersionInfo(QCoreApplication::applicationFilePath(), strProductVersion, strFileVersion))
+    {
+        strProductVersion = "0.7";
+        strFileVersion = "0.7";
+    }
+    AboutDialog::show(this, tr("About") + "WeImages ", "WeImages", strProductVersion);
 }
 
 void MainWindow::onCdDir(const QString path)

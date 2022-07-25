@@ -11,8 +11,11 @@ class IconHelper : public QObject
     Q_OBJECT
 
 private:
-    //FontAwesome6图形字体类
-    static IconHelper *iconFontAwesome6;
+    //默认构造函数,传入字体文件+字体名称
+    explicit IconHelper(const QString& fontFile, const QString& fontName, QObject* parent = 0);
+
+    ////FontAwesome6图形字体类
+    //static IconHelper *iconFontAwesome6;
 
 public:
     //样式颜色结构体
@@ -73,40 +76,30 @@ public:
         }
     };
 
-
-    //初始化图形字体
-    static void initFont();
-    ////设置引用图形字体文件索引
-    //static void setIconFontIndex(int index);
+    static IconHelper& getInstance();
 
     //获取图形字体
-    static QFont getIconFontAwesome6();
-
-    //根据值获取图形字体类
-    static IconHelper *getIconHelper(int icon);
+    QFont getIconFont();
 
     //设置图形字体到标签
-    static void setIcon(QLabel *lab, int icon, quint32 size = 12);
+     void setIcon(QLabel *lab, int icon, quint32 size = 12);
     //设置图形字体到按钮
-    static void setIcon(QAbstractButton *btn, int icon, quint32 size = 12);
+     void setIcon(QAbstractButton *btn, int icon, quint32 size = 12);
 
     //设置图形字体到图标
-    static void setPixmap(QAbstractButton *btn, const QColor &color,
+     void setPixmap(QAbstractButton *btn, const QColor &color,
                           int icon, quint32 size = 12,
                           quint32 width = 15, quint32 height = 15,
                           int flags = Qt::AlignCenter);
     //获取指定图形字体,可以指定文字大小,图片宽高,文字对齐
-    static QPixmap getPixmap(const QColor &color, int icon, quint32 size = 12,
+     QPixmap getPixmap(const QColor &color, int icon, quint32 size = 12,
                              quint32 width = 15, quint32 height = 15,
                              int flags = Qt::AlignCenter);
 
     //指定导航面板样式,带图标和效果切换+悬停颜色+按下颜色+选中颜色
-    static void setStyle(QWidget *widget, QList<QPushButton *> btns, QList<int> icons, const StyleColor &styleColor);
-    static void setStyle(QWidget *widget, QList<QToolButton *> btns, QList<int> icons, const StyleColor &styleColor);
-    static void setStyle(QWidget *widget, QList<QAbstractButton *> btns, QList<int> icons, const StyleColor &styleColor);
-
-    //默认构造函数,传入字体文件+字体名称
-    explicit IconHelper(const QString &fontFile, const QString &fontName, QObject *parent = 0);
+     void setStyle(QWidget *widget, QList<QPushButton *> btns, QList<int> icons, const StyleColor &styleColor);
+     void setStyle(QWidget *widget, QList<QToolButton *> btns, QList<int> icons, const StyleColor &styleColor);
+     void setStyle(QWidget *widget, QList<QAbstractButton *> btns, QList<int> icons, const StyleColor &styleColor);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event);
@@ -123,9 +116,7 @@ private slots:
     //按钮选中状态切换处理
     void toggled(bool checked);
 
-public:
-    //获取图形字体
-    QFont getIconFont();
+private:
 
     //设置图形字体到标签
     void setIcon1(QLabel *lab, int icon, quint32 size = 12);

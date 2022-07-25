@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(WeImages LANGUAGES CXX C VERSION 0.0.7)
+project(WeImages LANGUAGES CXX C VERSION 0.0.7.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,8 @@ set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windo
 
 #SET(CMAKE_BUILD_TYPE Release)
 #SET(CMAKE_BUILD_TYPE Debug)
+
+add_definitions(-D_AMD64_)
 
 if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
@@ -59,8 +61,10 @@ file(GLOB_RECURSE all_src_file
 
 SET(RCC_FILES resources/images/app.qrc)
 
+if(MSVC)
 set(MY_VERSIONINFO_RC "${PROJECT_BINARY_DIR}/versionInfo.rc")
 configure_file("resources/version/versionInfo.rc.in" "${MY_VERSIONINFO_RC}")
+endif()
 
 add_executable(${PROJECT_NAME}
         ${all_src_file}
