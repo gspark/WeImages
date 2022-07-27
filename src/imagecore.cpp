@@ -4,13 +4,13 @@
 #include <QSettings>
 #include <QCollator>
 #include <QtConcurrent/QtConcurrentRun>
-#include <QPixmapCache>
 #include <QIcon>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QMimeDatabase>
 
 #include "logger/Logger.h"
+#include "util/fasthash.h"
 
 ImageCore::ImageCore(QObject* parent) : QObject(parent)
 {
@@ -18,18 +18,20 @@ ImageCore::ImageCore(QObject* parent) : QObject(parent)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     QImageReader::setAllocationLimit(8192);
 #endif
-    QPixmapCache::setCacheLimit(512000);
+    _imageReadDataCache = new QCache<uint64_t, ImageReadData>(5000);
 
     _mineDb = new QMimeDatabase;
 
     connect(&loadFutureWatcher, &QFutureWatcher<ImageReadData>::finished, this, [this]() {
-        loadPixmap(loadFutureWatcher.result(), false);
+        loadPixmap(loadFutureWatcher.result());
         });
 }
 
 ImageCore::~ImageCore()
 {
     delete _mineDb;
+    _imageReadDataCache->clear();
+    delete _imageReadDataCache;
 }
 
 void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
@@ -38,69 +40,45 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
 
     //sanitize file name if necessary
     QUrl sanitaryUrl = QUrl(fileName);
-    if (sanitaryUrl.isLocalFile())
+    if (QUrl(fileName).isLocalFile())
         sanitaryFileName = sanitaryUrl.toLocalFile();
 
     QFileInfo fileInfo(sanitaryFileName);
     sanitaryFileName = fileInfo.absoluteFilePath();
 
-    //check if cached already before loading the long way
-  
-    auto* cachedPixmap = new QPixmap();
-    if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
+    uint64_t hash = 0;
+    if (findImageReadData(fileName, targetSize, hash))
     {
-        ImageReadData readData = {
-            *cachedPixmap,
-            fileInfo
-        };
-        loadPixmap(readData, true);
+        ImageReadData* readData = this->getImageReadData(hash);
+        loadPixmap(*readData);
     }
     else
     {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        loadFutureWatcher.setFuture(QtConcurrent::run(this, &ImageCore::readFile, fileInfo.absoluteFilePath(), false, targetSize));
+        loadFutureWatcher.setFuture(QtConcurrent::run(this, &ImageCore::readFile, fileInfo.absoluteFilePath(), targetSize));
 #else
-        loadFutureWatcher.setFuture(QtConcurrent::run(&ImageCore::readFile, this, fileInfo.absoluteFilePath(), false, targetSize));
+        loadFutureWatcher.setFuture(QtConcurrent::run(&ImageCore::readFile, this, fileInfo.absoluteFilePath(), targetSize));
 #endif
     }
-    delete cachedPixmap;
 }
 
 
-ImageReadData ImageCore::readFile(const QString& fileName, bool forCache, const QSize& targetSize)
+ImageReadData ImageCore::readFile(const QString& fileName, const QSize& targetSize)
 {
-    LOG_INFO << "ImageCore::readFile " << fileName << " QSize: " << targetSize;
-    QFileInfo fileInfo(fileName);
-    auto* cachedPixmap = new QPixmap();
-    QString sanitaryFileName = fileName;
-    if (QPixmapCache::find(sanitaryFileName.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height()), cachedPixmap) && !cachedPixmap->isNull())
+    uint64_t hash = 0;
+    if (findImageReadData(fileName, targetSize, hash))
     {
-        ImageReadData readData = {
-            *cachedPixmap,
-            fileInfo
-        };
-        return readData;
+        ImageReadData* readData = this->getImageReadData(hash);
+        return *readData;
     }
 
     QPixmap readPixmap;
+    QFileInfo fileInfo(fileName);
     QString extension = fileInfo.suffix();
     if (this->isWeChatImage(fileInfo)) {
         // wechat picture
-        DWORD start = GetTickCount();
-        BYTE* imageData = datConverImage(fileName, fileInfo.size(), &extension);
-        LOG_INFO << " datConverImage time: " << GetTickCount() - start;
-        start = GetTickCount();
-        if (readPixmap.loadFromData(imageData, fileInfo.size())) {
-            if (readPixmap.isNull()) {
-                return {};
-            }
-        }
-        if (targetSize.isValid())
-        {
-            readPixmap = readPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        }
-        LOG_INFO << " loadFromData time: " << GetTickCount() - start;
-        delete[] imageData;
+        readPixmap = readWeImage(fileName, fileInfo.size(), extension, targetSize);
+        LOG_INFO << "readWeImage extension: " << extension;
     }
     else {
         QImageReader imageReader;
@@ -126,42 +104,50 @@ ImageReadData ImageCore::readFile(const QString& fileName, bool forCache, const 
         }
         else
         {
-            DWORD start = GetTickCount();
             readPixmap = QPixmap::fromImageReader(&imageReader);
-            LOG_INFO << " QPixmap::fromImageReader time: " << GetTickCount() - start;
         }
     }
 
-    ImageReadData readData = {
+    ImageReadData* readData = new ImageReadData{
         readPixmap,
-        //QFileInfo(imageFileName),
         fileInfo,
-        extension
+        extension,
+        hash
     };
-    //if (forCache)
-    //{
-    //    addToCache(readData);
-    //}
-    return readData;
+    addToCache(*readData);
+    return *readData;
 }
 
-void ImageCore::loadPixmap(const ImageReadData& readData, bool fromCache)
+QPixmap ImageCore::readWeImage(const QString& fileName, long long fileSize, QString& extension, const QSize& targetSize)
+{
+    QPixmap readPixmap;
+    BYTE* imageData = datConverImage(fileName, fileSize, &extension);
+    DWORD start = GetTickCount();
+    if (readPixmap.loadFromData(imageData, fileSize)) {
+        if (!readPixmap.isNull() && targetSize.isValid())
+        {
+            readPixmap = readPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+    }
+    LOG_INFO << "loadFromData time: " << GetTickCount() - start;
+    delete[] imageData;
+    return readPixmap;
+}
+
+void ImageCore::loadPixmap(const ImageReadData& readData)
 {
     if (readData.pixmap.isNull())
         return;
-
-    // If this image isnt originally from the cache, add it to the cache
-    if (!fromCache)
-        addToCache(readData);
     emit imageLoaded((ImageReadData*)&readData);
 }
 
 void ImageCore::addToCache(const ImageReadData &readData)
 {
-    if (readData.pixmap.isNull()) {
-        return;
-    }
-    QPixmapCache::insert(readData.fileInfo.absoluteFilePath().append("_%1x%2").arg(readData.pixmap.width()).arg(readData.pixmap.height()), readData.pixmap);
+    //QString key = readData.fileInfo.absoluteFilePath().append("_%1x%2").arg(readData.pixmap.width()).arg(readData.pixmap.height());
+    //LOG_INFO << "addToCache key: " << key;
+    //QPixmapCache::insert(key, readData.pixmap);
+   
+    this->_imageReadDataCache->insert(readData.hash, const_cast<ImageReadData*>(&readData));
 }
 
 bool ImageCore::isImageFile(const QFileInfo& fileInfo)
@@ -179,11 +165,11 @@ bool ImageCore::isImageFile(const QFileInfo& fileInfo)
 
 bool ImageCore::isWeChatImage(const QFileInfo& fileInfo)
 {
-    LOG_INFO << "isWeChatImage suffix:" << fileInfo.suffix() << " baseName: " << fileInfo.baseName();
+    //LOG_INFO << "isWeChatImage suffix:" << fileInfo.suffix() << " baseName: " << fileInfo.baseName();
     return fileInfo.suffix() == "dat" && fileInfo.baseName().length() == 32;
 }
 
-QStringList ImageCore::imageFileNames()
+QStringList ImageCore::imageNames()
 {
     QStringList names;
     QMimeDatabase db;
@@ -299,4 +285,18 @@ void ImageCore::XOR(BYTE *v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR) {
     {
         v_pbyBuf[i] ^= byXOR;
     }
+}
+
+bool ImageCore::findImageReadData(const QString& absoluteFilePath, const QSize& targetSize, uint64_t& hash)
+{
+    QString key = absoluteFilePath;
+    key = key.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height());
+    LOG_INFO << "findImageReadData key: " << key;
+    hash = fasthash64(key.constData(), static_cast<uint64_t>(key.size()) * sizeof(QChar), 0);
+    return this->_imageReadDataCache->contains(hash);
+}
+
+ImageReadData* ImageCore::getImageReadData(uint64_t hash)
+{
+    return this->_imageReadDataCache->object(hash);
 }

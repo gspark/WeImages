@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QOpenGLContext>
+#include <QCache>
 
 #define THUMBNAIL_WIDE 112
 #define THUMBNAIL_HEIGHT 96
@@ -22,12 +23,14 @@ struct ImageReadData
     QPixmap pixmap;
     QFileInfo fileInfo;
     QString suffix;
+    uint64_t hash = 0;
 };
 
 // 自定义数据类型需注册才能放入QVariant
 Q_DECLARE_METATYPE(ImageReadData);
 
 class QMimeDatabase;
+
 
 class ImageCore : public QObject
 {
@@ -45,20 +48,25 @@ public:
     //************************************
     void loadFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
 
-    ImageReadData readFile(const QString& fileName, bool forCache, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
-    //ReadData readFileSize(const QString& fileName, bool forCache, const QSize& targetSize);
-    void loadPixmap(const ImageReadData& readData, bool fromCache);
+    ImageReadData readFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
+
+    QPixmap readWeImage(const QString& fileName, long long fileSize, QString& extension, const QSize& targetSize);
+
+    void loadPixmap(const ImageReadData& readData);
+
     void addToCache(const ImageReadData& readImageAndFileInfo);
 
     bool isImageFile(const QFileInfo& fileInfo);
 
-    QStringList imageFileNames();
+    QStringList imageNames();
 
     bool isWeChatImage(const QFileInfo& fileInfo);
 
 signals:
     void imageLoaded(ImageReadData* readData);
 private:
+    QCache<uint64_t, ImageReadData>* _imageReadDataCache;
+
     QMimeDatabase* _mineDb;
 
     QFutureWatcher<ImageReadData> loadFutureWatcher;
@@ -66,6 +74,9 @@ private:
     BYTE* datConverImage(const QString& datFileName, long long fileSize, QString* extension);
 
     void XOR(BYTE* v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR);
+
+    bool findImageReadData(const QString& absoluteFilePath, const QSize& targetSize, uint64_t& hash);
+    ImageReadData* getImageReadData(uint64_t hash);
 };
 
 #endif // IMAGECORE_H

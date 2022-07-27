@@ -53,7 +53,7 @@ void MainWindow::fileModelInit() {
 #endif
     fileModel->setRootPath("");
     fileModel->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::System | QDir::Hidden);
-    fileModel->setNameFilters(this->imageCore->imageFileNames());
+    fileModel->setNameFilters(this->imageCore->imageNames());
     fileModel->setReadOnly(true);
 }
 

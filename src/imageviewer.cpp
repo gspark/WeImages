@@ -108,7 +108,7 @@ void ImageViewer::initStatusBar(){
 }
 
 void ImageViewer::displayImage(QString absoluteFilePath) {
-    const ImageReadData& readData = this->_imageCore->readFile(absoluteFilePath, true, QSize());
+    const ImageReadData& readData = this->_imageCore->readFile(absoluteFilePath, QSize());
 
     fileIndexLabel->setText(QString::number(this->_imageSwitcher->currIndex() + 1) + "/" + QString::number(this->_imageSwitcher->count()));
     filePathLabel->setText(readData.fileInfo.absoluteFilePath());
@@ -191,7 +191,7 @@ void ImageViewer::on_exportImage_clicked()
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if(directory != "" ) {
         QFileInfo fileInfo = _imageSwitcher->getImage();
-        const ImageReadData& readData = this->_imageCore->readFile(fileInfo.absoluteFilePath(), true, QSize());
+        const ImageReadData& readData = this->_imageCore->readFile(fileInfo.absoluteFilePath(), QSize());
         QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData.suffix;
         readData.pixmap.save(file);
     }
