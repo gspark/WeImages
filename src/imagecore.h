@@ -48,11 +48,11 @@ public:
     //************************************
     void loadFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
 
-    ImageReadData readFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
+    ImageReadData* readFile(const QString& fileName, const QSize& targetSize = QSize(THUMBNAIL_WIDE, THUMBNAIL_HEIGHT));
 
     QPixmap readWeImage(const QString& fileName, long long fileSize, QString& extension, const QSize& targetSize);
 
-    void loadPixmap(const ImageReadData& readData);
+    void loadPixmap(const ImageReadData* readData);
 
     void addToCache(const ImageReadData& readImageAndFileInfo);
 
@@ -62,6 +62,8 @@ public:
 
     bool isWeChatImage(const QFileInfo& fileInfo);
 
+    QPixmap scaled(const QPixmap& originPixmap, const QSize& targetSize);
+
 signals:
     void imageLoaded(ImageReadData* readData);
 private:
@@ -69,7 +71,7 @@ private:
 
     QMimeDatabase* _mineDb;
 
-    QFutureWatcher<ImageReadData> loadFutureWatcher;
+    QFutureWatcher<ImageReadData*> loadFutureWatcher;
 
     BYTE* datConverImage(const QString& datFileName, long long fileSize, QString* extension);
 

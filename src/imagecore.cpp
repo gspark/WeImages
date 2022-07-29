@@ -50,7 +50,7 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
     if (findImageReadData(fileName, targetSize, hash))
     {
         ImageReadData* readData = this->getImageReadData(hash);
-        loadPixmap(*readData);
+        loadPixmap(readData);
     }
     else
     {
@@ -63,13 +63,13 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
 }
 
 
-ImageReadData ImageCore::readFile(const QString& fileName, const QSize& targetSize)
+ImageReadData* ImageCore::readFile(const QString& fileName, const QSize& targetSize)
 {
     uint64_t hash = 0;
     if (findImageReadData(fileName, targetSize, hash))
     {
         ImageReadData* readData = this->getImageReadData(hash);
-        return *readData;
+        return readData;
     }
 
     QPixmap readPixmap;
@@ -115,7 +115,7 @@ ImageReadData ImageCore::readFile(const QString& fileName, const QSize& targetSi
         hash
     };
     addToCache(*readData);
-    return *readData;
+    return readData;
 }
 
 QPixmap ImageCore::readWeImage(const QString& fileName, long long fileSize, QString& extension, const QSize& targetSize)
@@ -134,11 +134,11 @@ QPixmap ImageCore::readWeImage(const QString& fileName, long long fileSize, QStr
     return readPixmap;
 }
 
-void ImageCore::loadPixmap(const ImageReadData& readData)
+void ImageCore::loadPixmap(const ImageReadData* readData)
 {
-    if (readData.pixmap.isNull())
+    if (readData->pixmap.isNull())
         return;
-    emit imageLoaded((ImageReadData*)&readData);
+    emit imageLoaded((ImageReadData*)readData);
 }
 
 void ImageCore::addToCache(const ImageReadData &readData)
@@ -167,6 +167,11 @@ bool ImageCore::isWeChatImage(const QFileInfo& fileInfo)
 {
     //LOG_INFO << "isWeChatImage suffix:" << fileInfo.suffix() << " baseName: " << fileInfo.baseName();
     return fileInfo.suffix() == "dat" && fileInfo.baseName().length() == 32;
+}
+
+QPixmap ImageCore::scaled(const QPixmap& originPixmap, const QSize& targetSize)
+{
+    return originPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
 QStringList ImageCore::imageNames()
