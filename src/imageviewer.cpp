@@ -97,19 +97,24 @@ void ImageViewer::initToolBar(){
     connect(rotateImageActR, &QAction::triggered, this, &ImageViewer::on_rotateImage_r_clicked);
     fileToolBar->addAction(rotateImageActR);
 
-    QAction* flipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62201, 16, 16, 16)), tr("Rotate 180 Degrees"), this);
-    flipImageAct->setShortcuts(QKeySequence::New);
-    connect(flipImageAct, &QAction::triggered, this, &ImageViewer::on_flipImage_clicked);
-    fileToolBar->addAction(flipImageAct);
+    QAction* vFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62450, 16, 16, 16)), tr("Vertical Flip"), this);
+    vFlipImageAct->setShortcuts(QKeySequence::New);
+    connect(vFlipImageAct, &QAction::triggered, this, &ImageViewer::on_vflipImage_clicked);
+    fileToolBar->addAction(vFlipImageAct);
+
+    QAction* hFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62448, 16, 16, 16)), tr("Horizontal Flip"), this);
+    hFlipImageAct->setShortcuts(QKeySequence::New);
+    connect(hFlipImageAct, &QAction::triggered, this, &ImageViewer::on_hflipImage_clicked);
+    fileToolBar->addAction(hFlipImageAct);
 
     fileToolBar->addSeparator();
 
-    QAction* zoomInImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61454, 16, 16, 16)), tr("Zoom &In"), this);
+    QAction* zoomInImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61454, 16, 16, 16)), tr("Zoom &in"), this);
     zoomInImageAct->setShortcuts(QKeySequence::New);
     connect(zoomInImageAct, &QAction::triggered, this, &ImageViewer::on_zoomInImage_clicked);
     fileToolBar->addAction(zoomInImageAct);
 
-    QAction* zoomOutImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61456, 16, 16, 16)), tr("Zoom &Out"), this);
+    QAction* zoomOutImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61456, 16, 16, 16)), tr("Zoom &out"), this);
     zoomOutImageAct->setShortcuts(QKeySequence::New);
     connect(zoomOutImageAct, &QAction::triggered, this, &ImageViewer::on_zoomOutImage_clicked);
     fileToolBar->addAction(zoomOutImageAct);
@@ -121,7 +126,7 @@ void ImageViewer::initToolBar(){
 
     fileToolBar->addSeparator();
 
-    _exportImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("&export"), this);
+    _exportImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("&Export"), this);
     connect(_exportImageAct, &QAction::triggered, this, &ImageViewer::on_exportImage_clicked);
     fileToolBar->addAction(_exportImageAct);
     _exportImageAct->setEnabled(false);
@@ -190,8 +195,13 @@ void ImageViewer::loadImage(ImageLoadType loadType)
             computeScaleWithView(_originImage->pixmap);
             displayImage(resizeImage());
             break;
-        case flip:
+        case flipH:
             flipImage(_originImage->pixmap);
+            computeScaleWithView(_originImage->pixmap);
+            displayImage(resizeImage());
+            break;
+        case flipV:
+            flipImage(_originImage->pixmap, false);
             computeScaleWithView(_originImage->pixmap);
             displayImage(resizeImage());
             break;
@@ -276,16 +286,21 @@ double ImageViewer::computeScaleWithView(const QPixmap pixmap) {
     return _scale;
 }
 
-QPixmap ImageViewer::flipImage(const QPixmap originPixmap) {
+QPixmap ImageViewer::flipImage(const QPixmap originPixmap, bool horizontal) {
     if (originPixmap.isNull())
     {
         return QPixmap();
     }
-    QTransform transform;
-    transform.rotate(180, Qt::XAxis);
-    
-    this->_originImage->pixmap = originPixmap.transformed(transform, Qt::TransformationMode::SmoothTransformation);
- 
+
+    float  width = originPixmap.width(), height = originPixmap.height();
+    const QPixmap tmp = originPixmap.transformed(QTransform()
+        .translate(-width / 2, -height / 2)
+        .rotate(horizontal ? 180.0: -180.0, horizontal ? Qt::YAxis : Qt::XAxis)
+        .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
+    if (!tmp.isNull())
+    {
+        this->_originImage->pixmap = tmp;
+    }
     return this->_originImage->pixmap;
 }
 
@@ -369,9 +384,14 @@ void ImageViewer::on_rotateImage_l_clicked()
     loadImage(ImageLoadType::rotateL);
 }
 
-void ImageViewer::on_flipImage_clicked()
+void ImageViewer::on_vflipImage_clicked()
 {
-    loadImage(ImageLoadType::flip);
+    loadImage(ImageLoadType::flipV);
+}
+
+void ImageViewer::on_hflipImage_clicked()
+{
+    loadImage(ImageLoadType::flipH);
 }
 
 void ImageViewer::on_exportImage_clicked()

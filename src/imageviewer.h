@@ -11,7 +11,7 @@ class QAction;
 class ImageReadData;
 
 
-enum ImageLoadType { normal, flip, rotateL, rotateR, zoomIn, zoomOut, extend };
+enum ImageLoadType { normal, flipH, flipV, rotateL, rotateR, zoomIn, zoomOut, extend };
 
 
 class ImageViewer : public QMainWindow
@@ -32,7 +32,8 @@ private slots:
     void on_rotateImage_r_clicked();
     void on_rotateImage_l_clicked();
 
-    void on_flipImage_clicked();
+    void on_vflipImage_clicked();
+    void on_hflipImage_clicked();
 
     void on_exportImage_clicked();
 
@@ -77,7 +78,7 @@ private:
 
     double computeScaleWithView(const QPixmap pixmap);
 
-    QPixmap flipImage(const QPixmap originPixmap);
+    QPixmap flipImage(const QPixmap originPixmap, bool horizontal = true);
 
     QPixmap rotateImage(const QPixmap& originPixmap, bool right = true);
 
