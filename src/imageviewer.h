@@ -11,8 +11,7 @@ class QAction;
 class ImageReadData;
 
 
-enum ImageLoadType { normal, flipH, flipV, rotateL, rotateR, zoomIn, zoomOut, extend };
-
+enum ImageLoadType { normal, flip, rotate, zoomIn, zoomOut, extend };
 
 class ImageViewer : public QMainWindow
 {
@@ -29,10 +28,13 @@ private slots:
 
     void on_refreshImage_clicked();
 
+    void initImageParam();
+
     void on_rotateImage_r_clicked();
     void on_rotateImage_l_clicked();
 
     void on_vflipImage_clicked();
+
     void on_hflipImage_clicked();
 
     void on_exportImage_clicked();
@@ -42,6 +44,22 @@ private slots:
     void on_zoomOutImage_clicked();
     void on_delayLoadFile();
 private:
+    typedef struct {
+        // 是否水平
+        bool horizontal;
+        // 翻转次数
+        int dirH;
+        int dirV;
+    } Flip;
+
+    typedef struct {
+        // 是否右旋
+        bool right;
+        // 旋转次数
+        int dirR;
+        int dirL;
+    } Rotate;
+
     //界面对象
     QLabel *imgArea;//图片显示区域
     QScrollArea *scrollArea;//图片展示窗口
@@ -59,8 +77,15 @@ private:
 
     ImageReadData* _originImage;
 
-    //QSize imgSize;//图片尺寸
-    double _scale;//缩放比
+    QPixmap _currentPixmap;
+
+    //缩放比
+    double _scale;
+
+    Flip* _flip;
+
+    Rotate* _rotate;
+
     //UI创建及初始化
     void initUI();
     //初始化工具栏
@@ -72,20 +97,20 @@ private:
 
     void loadImage(ImageLoadType loadType);
 
-    QPixmap resizeImage();
+    QPixmap resizeImage(const QPixmap& pixmap);
 
     void displayImage(const QPixmap pixmap);
 
     double computeScaleWithView(const QPixmap pixmap);
 
-    QPixmap flipImage(const QPixmap originPixmap, bool horizontal = true);
+    QPixmap flipImage(const QPixmap originPixmap);
 
-    QPixmap rotateImage(const QPixmap& originPixmap, bool right = true);
+    QPixmap rotateImage(const QPixmap& originPixmap);
 
-    void zoomInImage();
-    void zoomOutImage();
-    void extendImage();
     void keyPressEvent(QKeyEvent* event);//按键事件
+
+    void initFlip();
+    void initRotate();
 protected:
 
 };

@@ -47,7 +47,7 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
     sanitaryFileName = fileInfo.absoluteFilePath();
 
     uint64_t hash = 0;
-    if (findImageReadData(fileName, targetSize, hash))
+    if (findImageReadData(hash, fileName, targetSize))
     {
         ImageReadData* readData = this->getImageReadData(hash);
         loadPixmap(readData);
@@ -66,7 +66,7 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
 ImageReadData* ImageCore::readFile(const QString& fileName, const QSize& targetSize)
 {
     uint64_t hash = 0;
-    if (findImageReadData(fileName, targetSize, hash))
+    if (findImageReadData(hash, fileName, targetSize))
     {
         ImageReadData* readData = this->getImageReadData(hash);
         return readData;
@@ -172,6 +172,24 @@ bool ImageCore::isWeChatImage(const QFileInfo& fileInfo)
 QPixmap ImageCore::scaled(const QPixmap& originPixmap, const QSize& targetSize)
 {
     return originPixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+QPixmap ImageCore::flipImage(const QPixmap originPixmap, bool horizontal /*= true*/, int dir /*= 1*/)
+{
+    float  width = originPixmap.width(), height = originPixmap.height();
+    return originPixmap.transformed(QTransform()
+        .translate(-width / 2, -height / 2)
+        .rotate(horizontal ? 180.0 * dir : -180.0 * dir, horizontal ? Qt::YAxis : Qt::XAxis)
+        .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
+}
+
+QPixmap ImageCore::rotateImage(const QPixmap& originPixmap, bool right /*= true*/, int dir /*= 1*/)
+{
+    float  width = originPixmap.width(), height = originPixmap.height();
+    return originPixmap.transformed(QTransform()
+        .translate(-width / 2, -height / 2)
+        .rotate(right ? 90.0 * dir : -90.0 * dir)
+        .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
 }
 
 QStringList ImageCore::imageNames()
@@ -292,7 +310,7 @@ void ImageCore::XOR(BYTE *v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR) {
     }
 }
 
-bool ImageCore::findImageReadData(const QString& absoluteFilePath, const QSize& targetSize, uint64_t& hash)
+bool ImageCore::findImageReadData(uint64_t& hash, const QString& absoluteFilePath, const QSize& targetSize)
 {
     QString key = absoluteFilePath;
     key = key.append("_%1x%2").arg(targetSize.width()).arg(targetSize.height());

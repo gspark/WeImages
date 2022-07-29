@@ -64,6 +64,9 @@ public:
 
     QPixmap scaled(const QPixmap& originPixmap, const QSize& targetSize);
 
+    QPixmap flipImage(const QPixmap originPixmap, bool horizontal = true, int dir = 1);
+
+    QPixmap rotateImage(const QPixmap& originPixmap, bool right = true, int dir = 1);
 signals:
     void imageLoaded(ImageReadData* readData);
 private:
@@ -77,7 +80,7 @@ private:
 
     void XOR(BYTE* v_pbyBuf, DWORD v_dwBufLen, BYTE byXOR);
 
-    bool findImageReadData(const QString& absoluteFilePath, const QSize& targetSize, uint64_t& hash);
+    bool findImageReadData(uint64_t& hash, const QString& absoluteFilePath, const QSize& targetSize);
     ImageReadData* getImageReadData(uint64_t hash);
 };
 

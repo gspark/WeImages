@@ -20,7 +20,8 @@
 #include <QTimer>
 
 ImageViewer::ImageViewer(ImageCore* imageCore, ImageSwitcher* imageSwitcher, QWidget* parent)
-    : QMainWindow(parent), _imageCore(imageCore), _imageSwitcher(imageSwitcher), _originImage(nullptr), _scale(1)
+    : QMainWindow(parent), _imageCore(imageCore), _imageSwitcher(imageSwitcher), _originImage(nullptr), _scale(1.0)
+    , _flip(nullptr), _rotate(nullptr)
 {
     this->setAttribute(Qt::WA_DeleteOnClose);
 
@@ -32,6 +33,14 @@ ImageViewer::ImageViewer(ImageCore* imageCore, ImageSwitcher* imageSwitcher, QWi
 ImageViewer::~ImageViewer()
 {
     delete _imageSwitcher;
+    if (nullptr != _flip)
+    {
+        delete _flip;
+    }
+    if (nullptr != _rotate)
+    {
+        delete _rotate;
+    }
     this->deleteLater();
 }
 
@@ -178,85 +187,63 @@ void ImageViewer::loadFile(const QString& absoluteFilePath)
     _exportImageAct->setEnabled(this->_imageCore->isWeChatImage(readData->fileInfo));
 
     this->_originImage = const_cast<ImageReadData*>(readData);
+    this->_currentPixmap = this->_originImage->pixmap;
 
     loadImage(ImageLoadType::normal);
 }
 
 void ImageViewer::loadImage(ImageLoadType loadType)
 {
-    if (nullptr != this->_originImage && !this->_originImage->pixmap.isNull()) {
-
-        imageSizeLabel->setText(QString::number(_originImage->pixmap.width())
-            + "x"
-            + QString::number(_originImage->pixmap.height()));
-        switch (loadType)
-        {
-        case normal:
-            computeScaleWithView(_originImage->pixmap);
-            displayImage(resizeImage());
-            break;
-        case flipH:
-            flipImage(_originImage->pixmap);
-            computeScaleWithView(_originImage->pixmap);
-            displayImage(resizeImage());
-            break;
-        case flipV:
-            flipImage(_originImage->pixmap, false);
-            computeScaleWithView(_originImage->pixmap);
-            displayImage(resizeImage());
-            break;
-        case rotateL:
-            rotateImage(_originImage->pixmap, false);
-            computeScaleWithView(_originImage->pixmap);
-            displayImage(resizeImage());
-            break;
-        case rotateR:
-            rotateImage(_originImage->pixmap);
-            computeScaleWithView(_originImage->pixmap);
-            displayImage(resizeImage());
-            break;
-        case zoomIn:
-            zoomInImage();
-            displayImage(resizeImage());
-            break;
-        case zoomOut:
-            zoomOutImage();
-            displayImage(resizeImage());
-            break;
-        case extend:
-            extendImage();
-            displayImage(resizeImage());
-            break;
-        default:
-            break;
-        }
-        imageScaleLabel->setText(QString::number(((float)((int)((_scale + 0.005) * 100)))) + " %");
+    if (this->_currentPixmap.isNull()) {
+        return;
     }
+    QPixmap pix = _currentPixmap;
+    switch (loadType)
+    {
+    case normal:
+        computeScaleWithView(pix);
+        break;
+    case flip:
+        pix = flipImage(_currentPixmap);
+        computeScaleWithView(pix);
+        _currentPixmap = pix;
+        break;
+    case rotate:
+        pix = rotateImage(_currentPixmap);
+        computeScaleWithView(pix);
+        _currentPixmap = pix;
+        break;
+    case zoomIn:
+    case zoomOut:
+    case extend:
+        break;
+    default:
+        return;
+    }
+    displayImage(resizeImage(pix));
+    imageSizeLabel->setText(QString::number(pix.width()) + "x" + QString::number(pix.height()));
+    imageScaleLabel->setText(QString::number(((float)((int)((_scale + 0.005) * 100)))) + " %");
 }
 
-QPixmap ImageViewer::resizeImage()
+QPixmap ImageViewer::resizeImage(const QPixmap& pixmap)
 {
-    if (nullptr == _originImage || _originImage->pixmap.isNull())
+    if (pixmap.isNull())
     {
         return QPixmap();
     }
 
     if (_scale == 1)
     {
-        return _originImage->pixmap;
+        return pixmap;
     }
-    int width = floor(_originImage->pixmap.width() * _scale);
-    int height = floor(_originImage->pixmap.height() * _scale);
-    return this->_imageCore->scaled(_originImage->pixmap, QSize(width, height));
+    int width = floor(pixmap.width() * _scale);
+    int height = floor(pixmap.height() * _scale);
+    return this->_imageCore->scaled(pixmap, QSize(width, height));
 }
 
 void ImageViewer::displayImage(const QPixmap pixmap) {
     imgArea->setPixmap(pixmap);
     imgArea->adjustSize();
-
-    //double scaleVar = computeScaleWithView(pixmap);
-    //imageScaleLabel->setText(QString::number(((float)((int)((scaleVar + 0.005) * 100)))) + " %");
-    imageScaleLabel->setText(QString::number(((float)((int)((_scale + 0.005) * 100)))) + " %");
 }
 
 double ImageViewer::computeScaleWithView(const QPixmap pixmap) {
@@ -286,62 +273,37 @@ double ImageViewer::computeScaleWithView(const QPixmap pixmap) {
     return _scale;
 }
 
-QPixmap ImageViewer::flipImage(const QPixmap originPixmap, bool horizontal) {
+QPixmap ImageViewer::flipImage(const QPixmap originPixmap) {
+    if (originPixmap.isNull())
+    {
+        return QPixmap();
+    }
+    if (nullptr != _flip)
+    {
+        const QPixmap pix = this->_imageCore->flipImage(originPixmap, _flip->horizontal, _flip->horizontal ? _flip->dirH : _flip->dirV);
+        if (!pix.isNull())
+        {
+            return pix;
+        }
+    }
+    return originPixmap;
+}
+
+QPixmap ImageViewer::rotateImage(const QPixmap& originPixmap) {
     if (originPixmap.isNull())
     {
         return QPixmap();
     }
 
-    float  width = originPixmap.width(), height = originPixmap.height();
-    const QPixmap tmp = originPixmap.transformed(QTransform()
-        .translate(-width / 2, -height / 2)
-        .rotate(horizontal ? 180.0: -180.0, horizontal ? Qt::YAxis : Qt::XAxis)
-        .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
-    if (!tmp.isNull())
+    if (nullptr != _rotate)
     {
-        this->_originImage->pixmap = tmp;
+        const QPixmap pix = this->_imageCore->rotateImage(originPixmap, _rotate->right, _rotate->right ? _rotate->dirR : _rotate->dirL);
+        if (!pix.isNull())
+        {
+            return pix;
+        }
     }
-    return this->_originImage->pixmap;
-}
-
-QPixmap ImageViewer::rotateImage(const QPixmap& originPixmap, bool right) {
-    if (originPixmap.isNull())
-    {
-        return QPixmap();
-    }
-
-    float  width = originPixmap.width(), height = originPixmap.height();
-    const QPixmap tmp = originPixmap.transformed(QTransform()
-        .translate(-width / 2, -height / 2)
-        .rotate(right ? 90.0 : -90.0)
-        .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
-    if (!tmp.isNull())
-    {
-        this->_originImage->pixmap = tmp;
-    }
-    return this->_originImage->pixmap;
-}
-
-
-void ImageViewer::zoomInImage() {
-    if (_scale <= 1.75) {
-        _scale = _scale + 0.25;
-    }
-    else {
-        _scale = 2;
-    }
-}
-
-void ImageViewer::zoomOutImage() {
-    if (_scale >= 0.35) {
-        _scale = _scale - 0.25;
-    }
-    else {
-        _scale = 0.1;
-    }
-}
-void ImageViewer::extendImage() {
-    _scale = 1;
+    return originPixmap;
 }
 
 /**************************************
@@ -359,39 +321,123 @@ void ImageViewer::keyPressEvent(QKeyEvent* event) {
 }
 
 void ImageViewer::on_readPrevImage_clicked(){
-    _scale = 1;
+    initImageParam();
     loadFile(_imageSwitcher->previous().absoluteFilePath());
 }
 
 void ImageViewer::on_readNextImage_clicked(){
-    _scale = 1;
+    initImageParam();
     loadFile(_imageSwitcher->next().absoluteFilePath());
 }
 
 void ImageViewer::on_refreshImage_clicked()
 {
-    _scale = 1;
+    initImageParam();
     loadFile(_imageSwitcher->getImage().absoluteFilePath());
+}
+
+void ImageViewer::initImageParam()
+{
+    _scale = 1.0;
+    if (nullptr != _flip)
+    {
+        delete _flip;
+        _flip = nullptr;
+    }
+    if (nullptr != _rotate)
+    {
+        delete _rotate;
+        _rotate = nullptr;
+    }
 }
 
 void ImageViewer::on_rotateImage_r_clicked()
 {
-    loadImage(ImageLoadType::rotateR);
+    if (nullptr == _rotate)
+    {
+        initRotate();
+    }
+    _rotate->right = true;
+    loadImage(ImageLoadType::rotate);
 }
 
 void ImageViewer::on_rotateImage_l_clicked()
 {
-    loadImage(ImageLoadType::rotateL);
+    if (nullptr == _rotate)
+    {
+        initRotate();
+    }
+    _rotate->right = false;
+    loadImage(ImageLoadType::rotate);
 }
 
 void ImageViewer::on_vflipImage_clicked()
 {
-    loadImage(ImageLoadType::flipV);
+    if (nullptr == _flip)
+    {
+        initFlip();
+    }
+    _flip->horizontal = false;
+    loadImage(ImageLoadType::flip);
 }
 
 void ImageViewer::on_hflipImage_clicked()
 {
-    loadImage(ImageLoadType::flipH);
+    if (nullptr == _flip)
+    {
+        initFlip();
+    }
+    _flip->horizontal = true;
+    loadImage(ImageLoadType::flip);
+}
+
+void ImageViewer::initRotate()
+{
+    _rotate = new Rotate;
+    _rotate->dirL = 1;
+    _rotate->dirR = 1;
+}
+
+void ImageViewer::initFlip()
+{
+    _flip = new Flip;
+    _flip->dirH = 1;
+    _flip->dirV = 1;
+}
+
+void ImageViewer::on_zoomInImage_clicked()
+{
+    if (_scale < 2) {
+        if (_scale <= 1.75) {
+            _scale = _scale + 0.25;
+        }
+        else {
+            _scale = 2;
+        }
+        loadImage(ImageLoadType::zoomIn);
+    }
+}
+
+void ImageViewer::on_zoomOutImage_clicked()
+{
+    if (_scale > 0.1) {
+        if (_scale >= 0.35) {
+            _scale = _scale - 0.25;
+        }
+        else {
+            _scale = 0.1;
+        }
+        loadImage(ImageLoadType::zoomOut);
+    }
+}
+
+void ImageViewer::on_extendImage_clicked()
+{
+    const double epslion = 1e-8;
+    if (abs(_scale - 1.0) > epslion) {
+        _scale = 1.0;
+        loadImage(ImageLoadType::extend);
+    }
 }
 
 void ImageViewer::on_exportImage_clicked()
@@ -400,7 +446,7 @@ void ImageViewer::on_exportImage_clicked()
         tr("open directory"),
         "",
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if(directory != "") {
+    if (directory != "") {
         QFileInfo fileInfo = _imageSwitcher->getImage();
         QString file;
         ImageReadData* readData = _originImage;
@@ -412,25 +458,3 @@ void ImageViewer::on_exportImage_clicked()
         readData->pixmap.save(file);
     }
 }
-
-void ImageViewer::on_extendImage_clicked()
-{
-    if (_scale != 1) {
-        loadImage(ImageLoadType::extend);
-    }
-}
-
-void ImageViewer::on_zoomInImage_clicked()
-{
-    if (_scale < 2) {
-        loadImage(ImageLoadType::zoomIn);
-    }
-}
-
-void ImageViewer::on_zoomOutImage_clicked()
-{
-    if (_scale > 0.1) {
-        loadImage(ImageLoadType::zoomOut);
-    }
-}
-
