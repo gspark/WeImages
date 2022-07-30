@@ -24,6 +24,7 @@ ImageViewer::ImageViewer(ImageCore* imageCore, ImageSwitcher* imageSwitcher, QWi
     , _flip(nullptr), _rotate(nullptr)
 {
     this->setAttribute(Qt::WA_DeleteOnClose);
+    this->setAttribute(Qt::WA_QuitOnClose, false);
 
     initUI();
 
@@ -407,12 +408,12 @@ void ImageViewer::initFlip()
 
 void ImageViewer::on_zoomInImage_clicked()
 {
-    if (_scale < 2) {
-        if (_scale <= 1.75) {
+    if (_scale < 4) {
+        if (_scale <= 3.75) {
             _scale = _scale + 0.25;
         }
         else {
-            _scale = 2;
+            _scale = 4;
         }
         loadImage(ImageLoadType::zoomIn);
     }
@@ -442,19 +443,11 @@ void ImageViewer::on_extendImage_clicked()
 
 void ImageViewer::on_exportImage_clicked()
 {
-    QString directory = QFileDialog::getExistingDirectory(this,
+    QString directory = QFileDialog::getExistingDirectory(nullptr,
         tr("open directory"),
         "",
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks/* | QFileDialog::DontUseNativeDialog*/);
     if (directory != "") {
-        QFileInfo fileInfo = _imageSwitcher->getImage();
-        QString file;
-        ImageReadData* readData = _originImage;
-        if (nullptr == readData)
-        {
-            readData = this->_imageCore->readFile(fileInfo.absoluteFilePath(), QSize());
-            file = directory + QDir::separator() + fileInfo.baseName() + "." + readData->suffix;
-        }
-        readData->pixmap.save(file);
+        this->_imageCore->exportWeChatImage(_imageSwitcher->getImage(), directory);
     }
 }

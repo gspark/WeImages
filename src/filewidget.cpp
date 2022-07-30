@@ -320,6 +320,8 @@ void FileWidget::selectAll()
         if (this->_imageCore->isWeChatImage(fileInfo))
         {
             // wechat
+            //item->setCheckState(item->checkState() == Qt::CheckState::Checked
+            //    ? Qt::CheckState::Unchecked : Qt::CheckState::Checked);
             item->setCheckState(Qt::CheckState::Checked);
         }
     }
@@ -342,11 +344,8 @@ void FileWidget::exportSelected()
         QString directory = QFileDialog::getExistingDirectory(this, tr("open directory"), QDir::currentPath());
         if (directory != "")
         {
-            QFuture<bool> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> bool {
-                const ImageReadData* readData = this->_imageCore->readFile(fileInfo.absoluteFilePath(), QSize());
-                QString file = directory + QDir::separator() + fileInfo.baseName() + "." + readData->suffix;
-                LOG_INFO << "export file: " << file;
-                return readData->pixmap.save(file);
+            QFuture<int> future = QtConcurrent::mapped(selects, [this, &directory](const QFileInfo& fileInfo) -> int {
+                return this->_imageCore->exportWeChatImage(fileInfo, directory);
                 });
             future.waitForFinished();
         }

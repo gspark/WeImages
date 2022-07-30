@@ -67,6 +67,8 @@ public:
     QPixmap flipImage(const QPixmap originPixmap, bool horizontal = true, int dir = 1);
 
     QPixmap rotateImage(const QPixmap& originPixmap, bool right = true, int dir = 1);
+
+    int exportWeChatImage(const QFileInfo& soureFile, const QString& targetPath);
 signals:
     void imageLoaded(ImageReadData* readData);
 private:

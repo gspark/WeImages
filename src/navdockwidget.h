@@ -21,9 +21,10 @@ public:
     virtual QSize sizeHint() const;
 
 public slots:
-    void onSetPath(const QString path);
+    void onSetPath(const QString& path);
     void onCdDir(const QString path);
 private:
+    ImageCore* imageCore;
     QFileSystemModel* fileModel;     // can not delete here
     FileFilterProxyModel* proxyModel;
     QTreeView* treeView;
@@ -31,13 +32,10 @@ private:
 
     void fileModelInit();
     void treeViewInit();
-
-    ImageCore* imageCore;
-
+    void currentRowChanged();
 private slots:
     void onTreeViewClicked(const QModelIndex& index);
     void imageLoaded(ImageReadData* readData);
-
 signals:
     void treeViewClicked(const QString path);
 };

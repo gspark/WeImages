@@ -10,7 +10,9 @@
 #include <QTreeView>
 #include <QHeaderView>
 #include <QFileSystemModel>
-
+#include <QTimer>
+#include <QThread>
+#include <QPushButton>
 
 NavDockWidget::NavDockWidget(QAbstractItemModel *model, ImageCore* imageCore)
 {
@@ -89,11 +91,17 @@ void NavDockWidget::onTreeViewClicked(const QModelIndex &index)
     }
 }
 
-void NavDockWidget::onSetPath(const QString path)
+void NavDockWidget::onSetPath(const QString& path)
 {
     QModelIndex index = this->proxyModel->proxyIndex(path);
     this->treeView->setCurrentIndex(index);
     emit treeViewClicked(path);
+    QTimer::singleShot(100, this, &NavDockWidget::currentRowChanged);
+}
+
+void NavDockWidget::currentRowChanged()
+{
+    QModelIndex index = this->treeView->currentIndex();
     this->treeView->scrollTo(index);
 }
 

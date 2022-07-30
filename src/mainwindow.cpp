@@ -22,20 +22,17 @@
 #include <QFileSystemModel>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QtConcurrent/QtConcurrent>
 
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
 {
     setWindowTitle(tr("WeImages"));
-
+    // must be created first
     this->imageCore = new ImageCore();
-
-    fileModel = new QFileSystemModel();
-    navDock = new NavDockWidget(fileModel, imageCore);
-
     fileModelInit();
-    setupMenuBar();
     setupWidgets();
+    setupMenuBar();
     loadWindowInfo();
 }
 
@@ -43,11 +40,12 @@ MainWindow::~MainWindow() {
     savaWindowInfo();
     navDock->deleteLater();
     fileModel->deleteLater();
-    this->deleteLater();
     delete this->imageCore;
+    this->deleteLater();
 }
 
 void MainWindow::fileModelInit() {
+    fileModel = new QFileSystemModel();
 #if DISABLE_FILE_WATCHER
     fileModel->setOptions(QFileSystemModel::DontWatchForChanges);
 #endif
@@ -57,29 +55,19 @@ void MainWindow::fileModelInit() {
     fileModel->setReadOnly(true);
 }
 
-void MainWindow::initStatusBar()
-{
-    fileIndexLabel = new QLabel();
-    filePathLabel = new QLabel();
-    fileSizeLabel = new QLabel();
-
-    statusBar()->addWidget(fileIndexLabel, 0);
-    statusBar()->addWidget(filePathLabel, 1);
-    statusBar()->addWidget(fileSizeLabel, 0);
-}
-
 void MainWindow::setupWidgets() {
-    initStatusBar();
-    // central widget
-    auto *widget = new FileWidget(this->imageCore, this);
- 
-    setCentralWidget(widget);
-
     // dock
+    navDock = new NavDockWidget(fileModel, this->imageCore);
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
-    navDock->setMinimumWidth(210);
+    navDock->setMinimumWidth(220);
     navDock->setMaximumWidth(540);
     addDockWidget(Qt::LeftDockWidgetArea, navDock);
+
+    // central widget
+    auto *widget = new FileWidget(this->imageCore, this);
+    setCentralWidget(widget);
+
+    initStatusBar();
 
     connect(this, &MainWindow::setPath, navDock, &NavDockWidget::onSetPath);
 
@@ -111,14 +99,26 @@ void MainWindow::setupMenuBar() {
     aboutAct->setToolTip(tr("Show the application's About box"));
 }
 
+void MainWindow::initStatusBar()
+{
+    fileIndexLabel = new QLabel();
+    filePathLabel = new QLabel();
+    fileSizeLabel = new QLabel();
+
+    statusBar()->addWidget(fileIndexLabel, 0);
+    statusBar()->addWidget(filePathLabel, 1);
+    statusBar()->addWidget(fileSizeLabel, 0);
+}
+
+
 // show about message
 void MainWindow::about() {
     QString strProductVersion;
     QString strFileVersion;
     if (!getFileVersionInfo(QCoreApplication::applicationFilePath(), strProductVersion, strFileVersion))
     {
-        strProductVersion = "0.7";
-        strFileVersion = "0.7";
+        strProductVersion = "0.8";
+        strFileVersion = "0.8";
     }
     AboutDialog::show(this, tr("About") + " WeImages ", "WeImages", strProductVersion);
 }
@@ -130,26 +130,34 @@ void MainWindow::onCdDir(const QString path)
 }
 
 void MainWindow::loadWindowInfo() {
+
     QVariant geometry = ConfigIni::getInstance().iniRead(QStringLiteral("Main/geometry"), QVariant());
     if (geometry.isValid()) {
         bool result = restoreGeometry(geometry.toByteArray());
-    } else {
+    }
+    else {
         // resize window
         QSize aSize = qGuiApp->primaryScreen()->availableSize();
         resize(aSize * 0.618);
     }
 
-    QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
-    if (path.isEmpty()) {
-        path = getWeChatImagePath();
-    }
-    QFileInfo f(path);
-    if (!f.isDir())
-    {
-        path = getWeChatImagePath();
-    }
-    ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
-    emit setPath(path);
+    weChatPathFuture.setFuture(QtConcurrent::run([this]() -> QString {
+        QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
+        if (path.isEmpty()) {
+            path = getWeChatImagePath();
+        }
+        QFileInfo f(path);
+        if (!f.isDir())
+        {
+            path = getWeChatImagePath();
+        }
+        ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
+        return path;
+        }));
+
+    connect(&weChatPathFuture, &QFutureWatcher<QString>::finished, this, [this]() {
+        emit setPath(weChatPathFuture.result());
+        });
 }
 
 void MainWindow::savaWindowInfo()

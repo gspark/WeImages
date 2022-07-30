@@ -62,7 +62,6 @@ void ImageCore::loadFile(const QString& fileName, const QSize& targetSize)
     }
 }
 
-
 ImageReadData* ImageCore::readFile(const QString& fileName, const QSize& targetSize)
 {
     uint64_t hash = 0;
@@ -192,6 +191,30 @@ QPixmap ImageCore::rotateImage(const QPixmap& originPixmap, bool right /*= true*
         .translate(width / 2, height / 2), Qt::TransformationMode::SmoothTransformation);
 }
 
+int ImageCore::exportWeChatImage(const QFileInfo& soureFile, const QString& targetPath)
+{
+    int ret = 1;
+    if (!isWeChatImage(soureFile))
+    {
+        return ret;
+    }
+    QString extension = soureFile.suffix();
+    BYTE* imageData = datConverImage(soureFile.absoluteFilePath(), soureFile.size(), &extension);
+    QFile wf(targetPath + QDir::separator() + soureFile.baseName() + "." + extension);
+    if (wf.open(QIODevice::WriteOnly))
+    {
+        QDataStream out(&wf);
+        out.writeRawData((const char *)imageData, soureFile.size());
+        wf.close();
+        ret = 0;
+    }
+    else {
+        ret = 2;
+    }
+    delete imageData;
+    return ret;
+}
+
 QStringList ImageCore::imageNames()
 {
     QStringList names;
@@ -267,9 +290,6 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize, 
             break;
 
         SetFilePointer(hDatFile, 0, NULL, FILE_BEGIN); // 设置到文件头开始
-//        hImageFile = CreateFile(imageFile.toStdWString().c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-//        if (INVALID_HANDLE_VALUE == hImageFile)
-//            break;
 
         DWORD dwWriteLen = 0;
         DWORD index = 0;
@@ -282,14 +302,8 @@ BYTE* ImageCore::datConverImage(const QString &datFileName, long long fileSize, 
 
             XOR(tmpBuf, dwReadLen, byXOR);
 
-//            bRet = WriteFile(hImageFile, byBuf, dwReadLen, &dwWriteLen, NULL);
-
             memcpy(datBuf + index, tmpBuf, dwReadLen);
             index += dwReadLen;
-//            if (!bRet || dwReadLen != dwWriteLen)
-            if (!bRet)
-                break;
-
         } while (dwReadLen == 64*1024);
     } while (FALSE);
 

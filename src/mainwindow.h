@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFutureWatcher>
 
 class NavDockWidget;
 class QFileSystemModel;
@@ -44,6 +45,8 @@ private:
     void savaWindowInfo();
 
     QString getWeChatImagePath();
+
+    QFutureWatcher<QString> weChatPathFuture;
 
 private slots:
     void about();
