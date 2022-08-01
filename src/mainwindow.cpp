@@ -25,7 +25,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
+MainWindow::MainWindow(QWidget* parent) : WxWindow(parent)
 {
     setWindowTitle(tr("WeImages"));
     // must be created first

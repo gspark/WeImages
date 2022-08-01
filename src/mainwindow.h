@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
+#include "component/wxwindow.h"
 #include <QFutureWatcher>
 
 class NavDockWidget;
@@ -11,7 +11,7 @@ class QStatusBar;
 class QLabel;
 class ImageReadData;
 
-class MainWindow : public QMainWindow
+class MainWindow : public WxWindow
 {
     Q_OBJECT
 
