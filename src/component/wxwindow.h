@@ -5,6 +5,7 @@
 
 class WxBar;
 class WxWindowPrivate;
+class QPushButton;
 
 class WxWindow : public QMainWindow
 {
@@ -28,6 +29,8 @@ public:
 
     void setWindowFlags(Qt::WindowFlags type);
 
+    QToolBar* toolBar() const;
+    void setToolBar(QToolBar* toolBar);
 private:
     WxWindowPrivate *d;
 };

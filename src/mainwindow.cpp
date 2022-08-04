@@ -4,6 +4,7 @@
 #include "navdockwidget.h"
 #include "filesystemhelperfunctions.h"
 #include "aboutdialog.h"
+#include "iconhelper.h"
 
 #include <QApplication>
 #include <QAction>
@@ -33,6 +34,7 @@ MainWindow::MainWindow(QWidget* parent) : WxWindow(parent)
     fileModelInit();
     setupWidgets();
     setupMenuBar();
+    setupToolBar();
     loadWindowInfo();
 }
 
@@ -151,6 +153,10 @@ void MainWindow::loadWindowInfo() {
         {
             path = getWeChatImagePath();
         }
+        if (path.isEmpty())
+        {
+            path = QCoreApplication::applicationDirPath();
+        }
         ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
         return path;
         }));
@@ -204,4 +210,15 @@ void MainWindow::imageLoaded(ImageReadData* readData)
     filePathLabel->setText(readData->fileInfo.absoluteFilePath());
     fileSizeLabel->setText(fileSizeToString(readData->fileInfo.size()));
 }
+
+void MainWindow::setupToolBar()
+{
+    QToolBar* toolBar = this->toolBar();
+    toolBar->setContentsMargins(0, 0, 0, 0);
+    IconHelper::StyleColor styleColor;
+
+    QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail"));
+    
+}
+
 

@@ -48,6 +48,8 @@ private:
 
     QFutureWatcher<QString> weChatPathFuture;
 
+    void setupToolBar();
+
 private slots:
     void about();
     void onCdDir(const QString path);

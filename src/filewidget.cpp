@@ -434,8 +434,11 @@ void FileWidget::loadFileListInfo()
 
 void FileWidget::saveFileListInfo()
 {
-    ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortColumn"), this->proxyModel->sortColumn());
-    ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortOrder"), this->proxyModel->sortOrder());
+    if (nullptr != this->proxyModel)
+    {
+        ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortColumn"), this->proxyModel->sortColumn());
+        ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/sortOrder"), this->proxyModel->sortOrder());
+    }
     ConfigIni::getInstance().iniWrite(QStringLiteral("FileList/column1w"), this->tableView->columnWidth(1));
 }
 

@@ -8,7 +8,8 @@ WxWindowPrivate::WxWindowPrivate():
     m_wxBar(nullptr),
     m_statusBar(nullptr),
     m_menuBar(nullptr),
-    m_layout(nullptr)
+    m_layout(nullptr),
+    m_toolbar(nullptr)
 {
 }
 

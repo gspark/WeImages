@@ -6,6 +6,7 @@ class WxBar;
 class QStatusBar;
 class QMenuBar;
 class QHBoxLayout;
+class QToolBar;
 
 class WxWindowPrivate : public QObject
 {
@@ -18,6 +19,8 @@ public:
     QStatusBar* m_statusBar;
     QMenuBar* m_menuBar;
     QHBoxLayout* m_layout;
+
+    QToolBar* m_toolbar;
 
 public slots:
     void slotResizable(bool resizable);

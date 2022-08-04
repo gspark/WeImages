@@ -34,6 +34,7 @@ WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
     mainLayout->setSpacing(1);
     mainLayout->addWidget(d->m_wxBar->logoButton(), 0, Qt::AlignCenter);
     mainLayout->addLayout(d->m_layout);
+    mainLayout->addStretch();
     mainLayout->addWidget(d->m_wxBar->titleLabel(), 0, Qt::AlignCenter);
     mainLayout->addStretch();
     mainLayout->addWidget(d->m_wxBar->sysToolBar(), 0, Qt::AlignTop);
@@ -71,7 +72,7 @@ QMenuBar *WxWindow::menuBar() const
         d->m_menuBar->setVisible(true);
 #endif
         d->m_layout->addWidget(d->m_menuBar, 0, Qt::AlignCenter);
-        d->m_layout->addStretch();
+        //d->m_layout->addStretch();
     }
     return d->m_menuBar;
 }
@@ -134,5 +135,37 @@ void WxWindow::setWindowFlags(Qt::WindowFlags type)
 {
     QMainWindow::setWindowFlags(type);
     d->m_wxBar->updateWidgetFlags();
+}
+
+QToolBar* WxWindow::toolBar() const
+{
+    if (d->m_toolbar == nullptr) {
+        d->m_toolbar = new QToolBar();
+#if !defined(Q_OS_WIN)
+        d->m_toolbar->setVisible(true);
+#endif
+        d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
+    }
+    return d->m_toolbar;
+}
+
+void WxWindow::setToolBar(QToolBar* toolBar)
+{
+    if (d->m_toolbar == toolBar || toolBar == nullptr) {
+        return;
+    }
+    if (d->m_toolbar) {
+        d->m_layout->removeWidget(d->m_toolbar);
+        delete d->m_toolbar;
+        d->m_toolbar = toolBar;
+        d->m_layout->insertWidget(0, d->m_menuBar, 0, Qt::AlignCenter);
+    }
+    else {
+        d->m_toolbar = toolBar;
+        d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
+    }
+#if !defined(Q_OS_WIN)
+    d->m_toolbar->setVisible(true);
+#endif
 }
 
