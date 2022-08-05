@@ -218,7 +218,11 @@ void MainWindow::setupToolBar()
     IconHelper::StyleColor styleColor;
 
     QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail"));
-    
+
+
+    toolBar = new QToolBar;
+    QAction* detailAction1 = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail1"));
+    this->setToolBar(toolBar);
 }
 
 

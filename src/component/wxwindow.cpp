@@ -25,10 +25,10 @@ WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
     QObject::connect(d->m_wxBar, SIGNAL(sigWidgetResizable(bool)),
                      d, SLOT(slotResizable(bool)));
 
-    QWidget *menuWidget = new QWidget(this);
     d->m_layout = new QHBoxLayout();
     d->m_layout->setSpacing(0);
     d->m_layout->setContentsMargins(0, 0, 0, 0);
+
     QHBoxLayout *mainLayout = new QHBoxLayout();
     mainLayout->setContentsMargins(2, 0, 2, 0);
     mainLayout->setSpacing(1);
@@ -38,8 +38,10 @@ WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
     mainLayout->addWidget(d->m_wxBar->titleLabel(), 0, Qt::AlignCenter);
     mainLayout->addStretch();
     mainLayout->addWidget(d->m_wxBar->sysToolBar(), 0, Qt::AlignTop);
+
+    QWidget* menuWidget = new QWidget(this);
     menuWidget->setLayout(mainLayout);
-    menuWidget->setObjectName(QLatin1String("shrill_titlebar"));
+    menuWidget->setObjectName(QLatin1String("shrill_TitleBar"));
     d->m_wxBar->setTitleBar(menuWidget);
 
     setMenuWidget(menuWidget);
@@ -50,7 +52,7 @@ WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
     raise();
     activateWindow();
 
-    setObjectName(QLatin1String("qlite_window"));
+    setObjectName(QLatin1String("shrill_window"));
 }
 
 WxWindow::~WxWindow()
@@ -144,6 +146,7 @@ QToolBar* WxWindow::toolBar() const
 #if !defined(Q_OS_WIN)
         d->m_toolbar->setVisible(true);
 #endif
+        d->m_layout->addSpacing(6);
         d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
     }
     return d->m_toolbar;
@@ -157,13 +160,16 @@ void WxWindow::setToolBar(QToolBar* toolBar)
     if (d->m_toolbar) {
         d->m_layout->removeWidget(d->m_toolbar);
         delete d->m_toolbar;
-        d->m_toolbar = toolBar;
-        d->m_layout->insertWidget(0, d->m_menuBar, 0, Qt::AlignCenter);
     }
-    else {
-        d->m_toolbar = toolBar;
-        d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
-    }
+    //else {
+    //    d->m_toolbar = toolBar;
+    //    d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
+    //}
+    d->m_toolbar = toolBar;
+    d->m_layout->addSpacing(6);
+    //d->m_layout->insertWidget(0, d->m_toolbar, 0, Qt::AlignCenter);
+    d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
+
 #if !defined(Q_OS_WIN)
     d->m_toolbar->setVisible(true);
 #endif
