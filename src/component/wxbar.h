@@ -5,7 +5,7 @@
 
 class QMouseEvent;
 class QLabel;
-class QToolButton;
+//class QToolButton;
 class QToolBar;
 class QAction;
 
@@ -21,7 +21,7 @@ public:
 
     QWidget *mainWidget() const;
     QLabel *titleLabel() const;
-    QToolButton *logoButton() const;
+    QLabel*logoButton() const;
     QWidget *sysToolBar() const;
 
     void addAction(QAction *action);
@@ -42,7 +42,7 @@ public:
 
 signals:
     void sigWidgetResizable(bool resizable);
-    void sigWidgetMovable(bool movable);
+    //void sigWidgetMovable(bool movable);
 
 protected:
     virtual bool eventFilter(QObject* object, QEvent* event);

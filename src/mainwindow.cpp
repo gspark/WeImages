@@ -217,12 +217,20 @@ void MainWindow::setupToolBar()
     toolBar->setContentsMargins(0, 0, 0, 0);
     IconHelper::StyleColor styleColor;
 
-    QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail"));
+    QAction* detailAction = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61574, 12, 16, 16)), tr("weixin"));
+    connect(detailAction, &QAction::triggered, this, &MainWindow::onCdWechatImage);
 
-
-    toolBar = new QToolBar;
-    QAction* detailAction1 = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 16, 16, 16)), tr("detail1"));
-    this->setToolBar(toolBar);
+    //toolBar = new QToolBar;
+    //QAction* detailAction1 = toolBar->addAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61498, 12, 16, 16)), tr("detail1"));
+    //this->setToolBar(toolBar);
 }
 
+void MainWindow::onCdWechatImage()
+{
+    QString wechat = getWeChatImagePath();
+    if (!wechat.isEmpty())
+    {
+        emit setPath(wechat);
+    }
+}
 

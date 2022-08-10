@@ -1,11 +1,12 @@
 #include "wxbar.h"
 #include "wxbar_p.h"
 #include "shscreen.h"
+#include "..\iconhelper.h"
 
 #include <QApplication>
 #include <QToolButton>
 #include <QLabel>
-#include <QToolBar>
+//#include <QToolBar>
 #include <QStyle>
 
 
@@ -87,11 +88,14 @@ WxBarPrivate::WxBarPrivate()
 
 void WxBarPrivate::init()
 {
-    const int sz = qApp->style()->pixelMetric(QStyle::PM_SmallIconSize, Q_NULLPTR, Q_NULLPTR);
-    m_logoButton = new QToolButton(m_mainWidget);
-    m_logoButton->setIconSize(QSize(sz, sz));
-    m_logoButton->setAutoRaise(true);
+    /*const int */sz = qApp->style()->pixelMetric(QStyle::PM_SmallIconSize, Q_NULLPTR, Q_NULLPTR);
+    m_logoButton = new QLabel(m_mainWidget);
+    //m_logoButton->setIconSize(QSize(sz, sz));
+    //m_logoButton->setAutoRaise(true);
+    m_logoButton->setAlignment(Qt::AlignCenter);
+    m_logoButton->setFixedSize(QSize(sz + 8, sz));
     m_logoButton->hide();
+
     m_titleLabel = new QLabel(m_mainWidget);
 
     m_toolBar = new QToolBar(m_mainWidget);
@@ -148,10 +152,16 @@ void WxBarPrivate::setIconDark(bool dark)
     if (dark) {
         suffix = QString("_dark");
     }
-    m_closeIcon = QIcon(QString(":/main/close%1.svg").arg(suffix));
-    m_minimizeIcon = QIcon(QString(":/main/min%1.svg").arg(suffix));
-    m_maximizeIcon = QIcon(QString(":/main/max%1.svg").arg(suffix));
-    m_normalIcon = QIcon(QString(":/main/restore%1.svg").arg(suffix));
+
+    IconHelper::StyleColor styleColor;
+    //m_closeIcon = QIcon(QString(":/main/close%1.svg").arg(suffix));
+    m_closeIcon = QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62163, 12, sz, sz));
+    //m_minimizeIcon = QIcon(QString(":/main/min%1.svg").arg(suffix));
+    m_minimizeIcon = QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62161, 12, sz, sz));
+    //m_maximizeIcon = QIcon(QString(":/main/max%1.svg").arg(suffix));
+    m_maximizeIcon = QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62160, 12, sz, sz));
+    //m_normalIcon = QIcon(QString(":/main/restore%1.svg").arg(suffix));
+    m_normalIcon = QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62162, 12, sz, sz));
 
     m_closeAction->setIcon(m_closeIcon);
     m_minimizeAction->setIcon(m_minimizeIcon);
@@ -214,7 +224,7 @@ bool WxBarPrivate::windowIconChange(QObject *obj)
     QIcon icon = pWidget->windowIcon();
     if (!icon.isNull()) {
         m_logoButton->show();
-        m_logoButton->setIcon(icon);
+        m_logoButton->setPixmap(icon.pixmap(sz, sz));
     }
     return true;
 }
@@ -653,7 +663,7 @@ QLabel *WxBar::titleLabel() const
     return d->m_titleLabel;
 }
 
-QToolButton *WxBar::logoButton() const
+QLabel*WxBar::logoButton() const
 {
     return d->m_logoButton;
 }

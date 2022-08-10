@@ -1,7 +1,7 @@
 #ifndef IMAGEVIEWER_H
 #define IMAGEVIEWER_H
 
-#include <QMainWindow>
+#include "component/wxwindow.h"
 
 class ImageCore;
 class ImageSwitcher;
@@ -13,7 +13,7 @@ class ImageReadData;
 
 enum ImageLoadType { normal, flip, rotate, zoomIn, zoomOut, extend };
 
-class ImageViewer : public QMainWindow
+class ImageViewer : public WxWindow
 {
     Q_OBJECT
 

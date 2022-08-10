@@ -3,6 +3,7 @@
 #include "models/imageswitcher.h"
 #include "iconhelper.h"
 #include "filesystemhelperfunctions.h"
+#include "component\shscreen.h"
 
 #include <QAction>
 #include <QApplication>
@@ -20,10 +21,11 @@
 #include <QTimer>
 
 ImageViewer::ImageViewer(ImageCore* imageCore, ImageSwitcher* imageSwitcher, QWidget* parent)
-    : QMainWindow(parent), _imageCore(imageCore), _imageSwitcher(imageSwitcher), _originImage(nullptr), _scale(1.0)
+    : WxWindow(parent), _imageCore(imageCore), _imageSwitcher(imageSwitcher), _originImage(nullptr), _scale(1.0)
     , _flip(nullptr), _rotate(nullptr)
 {
     this->setAttribute(Qt::WA_DeleteOnClose);
+    // 主窗体关闭也关闭此窗体
     this->setAttribute(Qt::WA_QuitOnClose, false);
 
     initUI();
@@ -62,7 +64,8 @@ void ImageViewer::initUI(){
     //禁止工具栏右键菜单
     setContextMenuPolicy(Qt::NoContextMenu);
     setWindowTitle(tr("viewer"));
-    resize(1200, 800);
+    QRect geom = ShScreen::normalRect();
+    resize(geom.width(), geom.height());
 }
 
 void ImageViewer::initToolBar(){
@@ -77,66 +80,66 @@ void ImageViewer::initToolBar(){
 
     IconHelper::StyleColor styleColor;
 
-    QAction *prevImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61751, 16, 16, 16)), tr("&Previous"), this);
+    QAction *prevImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61751, 12, 16, 16)), tr("&Previous"), this);
     prevImageAct->setShortcuts(QKeySequence::New);
     connect(prevImageAct, &QAction::triggered, this, &ImageViewer::on_readPrevImage_clicked);
     fileToolBar->addAction(prevImageAct);
 
     //const QIcon nextImageIcon = QIcon::fromTheme("document-new", QIcon(":/images/Next.png"));
-    QAction *nextImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61752, 16, 16, 16)), tr("&Next"), this);
+    QAction *nextImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61752, 12, 16, 16)), tr("&Next"), this);
     nextImageAct->setShortcuts(QKeySequence::New);
     connect(nextImageAct, &QAction::triggered, this, &ImageViewer::on_readNextImage_clicked);
     fileToolBar->addAction(nextImageAct);
 
     fileToolBar->addSeparator();
 
-    QAction* refreshImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62193, 16, 16, 16)), tr("&Refresh"), this);
+    QAction* refreshImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62193, 12, 16, 16)), tr("&Refresh"), this);
     refreshImageAct->setShortcuts(QKeySequence::New);
     connect(refreshImageAct, &QAction::triggered, this, &ImageViewer::on_refreshImage_clicked);
     fileToolBar->addAction(refreshImageAct);
 
     fileToolBar->addSeparator();
 
-    QAction* rotateImageActL = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62186, 16, 16, 16)), tr("Rotate &Left"), this);
+    QAction* rotateImageActL = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62186, 12, 16, 16)), tr("Rotate &Left"), this);
     rotateImageActL->setShortcuts(QKeySequence::New);
     connect(rotateImageActL, &QAction::triggered, this, &ImageViewer::on_rotateImage_l_clicked);
     fileToolBar->addAction(rotateImageActL);
 
-    QAction* rotateImageActR = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62201, 16, 16, 16)), tr("Rotate Right"), this);
+    QAction* rotateImageActR = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62201, 12, 16, 16)), tr("Rotate Right"), this);
     rotateImageActR->setShortcuts(QKeySequence::New);
     connect(rotateImageActR, &QAction::triggered, this, &ImageViewer::on_rotateImage_r_clicked);
     fileToolBar->addAction(rotateImageActR);
 
-    QAction* vFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62450, 16, 16, 16)), tr("Vertical Flip"), this);
+    QAction* vFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62450, 12, 16, 16)), tr("Vertical Flip"), this);
     vFlipImageAct->setShortcuts(QKeySequence::New);
     connect(vFlipImageAct, &QAction::triggered, this, &ImageViewer::on_vflipImage_clicked);
     fileToolBar->addAction(vFlipImageAct);
 
-    QAction* hFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62448, 16, 16, 16)), tr("Horizontal Flip"), this);
+    QAction* hFlipImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62448, 12, 16, 16)), tr("Horizontal Flip"), this);
     hFlipImageAct->setShortcuts(QKeySequence::New);
     connect(hFlipImageAct, &QAction::triggered, this, &ImageViewer::on_hflipImage_clicked);
     fileToolBar->addAction(hFlipImageAct);
 
     fileToolBar->addSeparator();
 
-    QAction* zoomInImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61454, 16, 16, 16)), tr("Zoom &in"), this);
+    QAction* zoomInImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61454, 12, 16, 16)), tr("Zoom &in"), this);
     zoomInImageAct->setShortcuts(QKeySequence::New);
     connect(zoomInImageAct, &QAction::triggered, this, &ImageViewer::on_zoomInImage_clicked);
     fileToolBar->addAction(zoomInImageAct);
 
-    QAction* zoomOutImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61456, 16, 16, 16)), tr("Zoom &out"), this);
+    QAction* zoomOutImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 61456, 12, 16, 16)), tr("Zoom &out"), this);
     zoomOutImageAct->setShortcuts(QKeySequence::New);
     connect(zoomOutImageAct, &QAction::triggered, this, &ImageViewer::on_zoomOutImage_clicked);
     fileToolBar->addAction(zoomOutImageAct);
 
-    QAction* extendImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62238, 16, 16, 16)), tr("Don't Fit"), this);
+    QAction* extendImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62238, 12, 16, 16)), tr("Don't Fit"), this);
     extendImageAct->setShortcuts(QKeySequence::New);
     connect(extendImageAct, &QAction::triggered, this, &ImageViewer::on_extendImage_clicked);
     fileToolBar->addAction(extendImageAct);
 
     fileToolBar->addSeparator();
 
-    _exportImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62830, 16, 16, 16)), tr("&Export"), this);
+    _exportImageAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62830, 12, 16, 16)), tr("&Export"), this);
     connect(_exportImageAct, &QAction::triggered, this, &ImageViewer::on_exportImage_clicked);
     fileToolBar->addAction(_exportImageAct);
     _exportImageAct->setEnabled(false);
@@ -145,10 +148,10 @@ void ImageViewer::initToolBar(){
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     fileToolBar->addWidget(spacer);
 
-    QAction* closeAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62197, 16, 16, 16)), tr("&close"), this);
-    closeAct->setShortcuts(QKeySequence::New);
-    connect(closeAct, &QAction::triggered, this, &ImageViewer::close);
-    fileToolBar->addAction(closeAct);
+    //QAction* closeAct = new QAction(QIcon(IconHelper::getInstance().getPixmap(styleColor.normalBgColor, 62197, 12, 16, 16)), tr("&close"), this);
+    //closeAct->setShortcuts(QKeySequence::New);
+    //connect(closeAct, &QAction::triggered, this, &ImageViewer::close);
+    //fileToolBar->addAction(closeAct);
 }
 
 void ImageViewer::initStatusBar(){

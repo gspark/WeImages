@@ -28,6 +28,11 @@ QPixmap IconHelper::getPixmap(const QColor &color, int icon, quint32 size,
     return this->getPixmap1(color, icon, size, width, height, flags);
 }
 
+QPixmap IconHelper::getPixmap(int icon, quint32 size /*= 12*/, quint32 width /*= 16*/, quint32 height /*= 16*/, int flags /*= Qt::AlignCenter*/, const QColor& color /*= StyleColor().normalBgColor*/)
+{
+    return this->getPixmap1(color, icon, size, width, height, flags);
+}
+
 void IconHelper::setStyle(QWidget *widget, QList<QPushButton *> btns,
                           QList<int> icons, const IconHelper::StyleColor &styleColor)
 {

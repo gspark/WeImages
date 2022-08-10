@@ -10,6 +10,7 @@
 #include "wxbar.h"
 #include "shscreen.h"
 #include "wxWindowPrivate.h"
+#include "..\iconhelper.h"
 
 
 WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
@@ -53,6 +54,10 @@ WxWindow::WxWindow(QWidget *parent, Qt::WindowFlags f)
     activateWindow();
 
     setObjectName(QLatin1String("shrill_window"));
+
+
+   this->setWindowIcon(QIcon(IconHelper::getInstance().getPixmap(61550)));
+    
 }
 
 WxWindow::~WxWindow()
@@ -76,6 +81,7 @@ QMenuBar *WxWindow::menuBar() const
         d->m_layout->addWidget(d->m_menuBar, 0, Qt::AlignCenter);
         //d->m_layout->addStretch();
     }
+    d->m_menuBar->setStyleSheet(menuBarStyle);
     return d->m_menuBar;
 }
 
@@ -98,6 +104,7 @@ void WxWindow::setMenuBar(QMenuBar *menuBar)
     d->m_menuBar->setNativeMenuBar(false);
     d->m_menuBar->setVisible(true);
 #endif
+    d->m_menuBar->setStyleSheet(menuBarStyle);
 }
 
 QStatusBar *WxWindow::statusBar() const
@@ -161,10 +168,6 @@ void WxWindow::setToolBar(QToolBar* toolBar)
         d->m_layout->removeWidget(d->m_toolbar);
         delete d->m_toolbar;
     }
-    //else {
-    //    d->m_toolbar = toolBar;
-    //    d->m_layout->addWidget(d->m_toolbar, 0, Qt::AlignCenter);
-    //}
     d->m_toolbar = toolBar;
     d->m_layout->addSpacing(6);
     //d->m_layout->insertWidget(0, d->m_toolbar, 0, Qt::AlignCenter);

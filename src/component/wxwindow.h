@@ -31,6 +31,10 @@ public:
 
     QToolBar* toolBar() const;
     void setToolBar(QToolBar* toolBar);
+
+    const QString menuBarStyle = "QMenuBar{background-color:transparent;}"
+        "QMenuBar::item::selected{background-color:transparent;border:1px solid rgb(165,171,184)}"
+        "QMenuBar::item{background-color:transparent;}";
 private:
     WxWindowPrivate *d;
 };

@@ -96,6 +96,9 @@ public:
                              quint32 width = 15, quint32 height = 15,
                              int flags = Qt::AlignCenter);
 
+     //获取指定图形字体,可以指定文字大小,图片宽高,文字对齐
+     QPixmap getPixmap(int icon, quint32 size = 12, quint32 width = 16, quint32 height = 16, int flags = Qt::AlignCenter, const QColor& color = StyleColor().normalBgColor);
+
     //指定导航面板样式,带图标和效果切换+悬停颜色+按下颜色+选中颜色
      void setStyle(QWidget *widget, QList<QPushButton *> btns, QList<int> icons, const StyleColor &styleColor);
      void setStyle(QWidget *widget, QList<QToolButton *> btns, QList<int> icons, const StyleColor &styleColor);

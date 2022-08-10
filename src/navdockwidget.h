@@ -25,7 +25,8 @@ public slots:
     void onCdDir(const QString path);
 private:
     ImageCore* imageCore;
-    QFileSystemModel* fileModel;     // can not delete here
+    // can not delete
+    QFileSystemModel* fileModel;
     FileFilterProxyModel* proxyModel;
     QTreeView* treeView;
     QLabel* thumbnail;

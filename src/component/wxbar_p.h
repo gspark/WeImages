@@ -7,7 +7,7 @@
 #include <QIcon>
 
 class QLabel;
-class QToolButton;
+//class QToolButton;
 class QToolBar;
 
 
@@ -86,7 +86,7 @@ public:
     WxBar *q;
     QWidget *m_titleBar;
 
-    QToolButton *m_logoButton;
+    QLabel*m_logoButton;
     QLabel *m_titleLabel;
     QToolBar *m_toolBar;
     QAction *m_closeAction;
@@ -121,6 +121,8 @@ public:
     bool m_bLeftButtonPressed;
     bool m_bLeftButtonDbClicked;
     bool m_bLeftButtonTitlePressed;
+
+    int sz;
 };
 
 #endif // WXBAR_P_H

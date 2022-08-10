@@ -54,6 +54,7 @@ private slots:
     void about();
     void onCdDir(const QString path);
     void imageLoaded(ImageReadData* readData);
+    void onCdWechatImage();
 signals:
     void setPath(const QString path);
 };
