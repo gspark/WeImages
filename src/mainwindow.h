@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include "component/wxwindow.h"
-#include <QFutureWatcher>
 
 class NavDockWidget;
 class QFileSystemModel;
@@ -45,8 +44,6 @@ private:
     void savaWindowInfo();
 
     QString getWeChatImagePath();
-
-    QFutureWatcher<QString> weChatPathFuture;
 
     void setupToolBar();
 

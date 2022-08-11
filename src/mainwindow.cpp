@@ -23,7 +23,7 @@
 #include <QFileSystemModel>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QtConcurrent/QtConcurrent>
+#include <QTimer>
 
 
 MainWindow::MainWindow(QWidget* parent) : WxWindow(parent)
@@ -143,7 +143,7 @@ void MainWindow::loadWindowInfo() {
         resize(aSize * 0.618);
     }
 
-    weChatPathFuture.setFuture(QtConcurrent::run([this]() -> QString {
+    QTimer::singleShot(100, this, [this]() -> void {
         QString path = ConfigIni::getInstance().iniRead(QStringLiteral("Main/path"), "").toString();
         if (path.isEmpty()) {
             path = getWeChatImagePath();
@@ -158,11 +158,7 @@ void MainWindow::loadWindowInfo() {
             path = QCoreApplication::applicationDirPath();
         }
         ConfigIni::getInstance().iniWrite(QStringLiteral("Main/path"), path);
-        return path;
-        }));
-
-    connect(&weChatPathFuture, &QFutureWatcher<QString>::finished, this, [this]() {
-        emit setPath(weChatPathFuture.result());
+        emit setPath(path);
         });
 }
 

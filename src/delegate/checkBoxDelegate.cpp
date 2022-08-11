@@ -5,7 +5,7 @@
 #include <QRadioButton>
 #include <QApplication>
 #include <QMouseEvent>
-//#include <QPainter>
+#include <QPainter>
 
 CheckBoxDelegate::CheckBoxDelegate(QObject* parent /*= 0*/)
 {
@@ -19,13 +19,14 @@ CheckBoxDelegate::~CheckBoxDelegate()
 
 void CheckBoxDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-    QStyleOptionViewItem viewOption(option);
-    initStyleOption(&viewOption, index);
-    if (option.state.testFlag(QStyle::State_HasFocus))
-        viewOption.state = viewOption.state ^ QStyle::State_HasFocus;
-
+    //QStyleOptionViewItem viewOption(option);
+    //initStyleOption(&viewOption, index);
+    //if (option.state.testFlag(QStyle::State_HasFocus))
+    //    viewOption.state = viewOption.state ^ QStyle::State_HasFocus;
+    //
     if (index.column() == CheckBoxColumn)
     {
+        painter->save();
         Qt::CheckState checkStat = Qt::CheckState(qvariant_cast<int>(index.data(Qt::CheckStateRole)));
 
         QStyleOptionButton checkBoxStyle;
@@ -38,9 +39,11 @@ void CheckBoxDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
         checkBoxStyle.iconSize = QSize(20, 20);
         checkBoxStyle.rect = option.rect;
         QApplication::style()->drawPrimitive(QStyle::PE_IndicatorRadioButton, &checkBoxStyle, painter, &checkBox);
+        painter->restore();
     }
     else {
-        QStyledItemDelegate::paint(painter, viewOption, index);
+        //QStyledItemDelegate::paint(painter, viewOption, index);
+        QStyledItemDelegate::paint(painter, option, index);
     }
 }
 

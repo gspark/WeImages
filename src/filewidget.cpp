@@ -39,6 +39,8 @@ FileWidget::FileWidget(ImageCore* imageCore, QWidget* parent) :
 
     this->fileViewType = FileViewType::Table;
 
+    QTimer::singleShot(100, this, &FileWidget::loadFileListInfo);
+
     // widget init
     setupToolBar();
     tableView = nullptr;
@@ -47,7 +49,6 @@ FileWidget::FileWidget(ImageCore* imageCore, QWidget* parent) :
     checkBoxDelegate = nullptr;
     initListView();
     initWidgetLayout();
-    loadFileListInfo();
 }
 
 FileWidget::~FileWidget() {
@@ -65,12 +66,14 @@ FileWidget::~FileWidget() {
     tableView->deleteLater();
     thumbnailView->deleteLater();
     proxyModel->deleteLater();
+    toolBar->deleteLater();
 }
 
 void FileWidget::setupToolBar() {
     toolBar = new QToolBar;
     //toolBar->setStyleSheet("background-color:rgb(0, 200, 0);}");
-    toolBar->setContentsMargins(0, 0, 0, 0);
+    //toolBar->setContentsMargins(0, 0, 0, 0);
+    //toolBar->setStyleSheet("QToolBar {border-left: none; border-right: none; border-bottom: none; border-top: none;}");
 
     IconHelper::StyleColor styleColor;
 
@@ -180,13 +183,13 @@ void FileWidget::initWidgetLayout() {
 void FileWidget::cdPath(const QString& path)
 {
     currentPath = path;
-    //QFuture<void> fut = QtConcurrent::run(&FileWidget::initListModel, this, path, false);
-    //fut.waitForFinished();
-    initListModel(path, false);
+    DWORD start = GetTickCount();
+    initListModel(path/*, false*/);
     onUpdateItems();
+    LOG_INFO << "cdPath time: " << GetTickCount() - start;
 }
 
-void FileWidget::initListModel(const QString& path, bool readPixmap) {
+void FileWidget::initListModel(const QString& path/*, bool readPixmap*/) {
     if (nullptr == fileListModel)
     {
         fileListModel = new FileListModel(this->_imageCore, ensureIconProvider());
@@ -200,13 +203,10 @@ void FileWidget::initListModel(const QString& path, bool readPixmap) {
         tableView->sortByColumn(this->_sortColumn, Qt::SortOrder(this->_sortOrder));
         tableView->setAlternatingRowColors(true);
         //tableView->setFont(QFont("Fixedsys", 8));
-        //connect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-        //connect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
-        //connect(this->fileListModel, &FileListModel::onUpdateItems, this, &FileWidget::onUpdateItems);
     }
+    DWORD start = GetTickCount();
     QList<QFileInfo> fileInfos = getRowItemList(path);
 
-    DWORD start = GetTickCount();
     disconnect(thumbnailView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
     disconnect(tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &FileWidget::onCurrentChanged);
     proxyModel->setSourceModel(nullptr);
@@ -248,16 +248,16 @@ void FileWidget::setTableColWidth()
     tableView->setColumnWidth(3, 137);
 }
 
-void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
+void FileWidget::setThumbnailView(const QString& path/*, bool readPixmap*/)
 {
-    LOG_INFO << "setThumbnailView path: " << path << " readPixmap:" << readPixmap;
+    LOG_INFO << "setThumbnailView path: " << path/* << " readPixmap:" << readPixmap*/;
 
     QList<QStandardItem*> itemInfos = getRowItemList();
     if (itemInfos.isEmpty())
     {
         return;
     }
-    QFuture<QStandardItem*> future = QtConcurrent::mapped(itemInfos, [this, &readPixmap](QStandardItem* rowItem) -> QStandardItem*
+    QFuture<QStandardItem*> future = QtConcurrent::mapped(itemInfos, [this/*, &readPixmap*/](QStandardItem* rowItem) -> QStandardItem*
         {
             QVariant variant = rowItem->data(Qt::UserRole + 3);
             if (variant.isNull())
@@ -268,8 +268,8 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
             auto itemData = variant.value<ThumbnailData>();
             itemData.isWeChatImage = this->_imageCore->isWeChatImage(itemData.fileInfo);
 
-            if (readPixmap)
-            {
+            //if (readPixmap)
+            //{
                 if (this->_imageCore->isImageFile(itemData.fileInfo))
                 {
                     const ImageReadData* image = _imageCore->readFile(itemData.fileInfo.absoluteFilePath());
@@ -280,7 +280,7 @@ void FileWidget::setThumbnailView(const QString& path, bool readPixmap)
                     auto icon = ensureIconProvider()->icon(itemData.fileInfo);
                     itemData.thumbnail = icon.pixmap(ICON_WIDE, ICON_HEIGHT);
                 }
-            }
+            //}
             rowItem->setData(QVariant::fromValue(itemData), Qt::UserRole + 3);
             return rowItem;
         });

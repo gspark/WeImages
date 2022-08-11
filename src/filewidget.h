@@ -93,9 +93,9 @@ private:
 
     void cdPath(const QString& path);
 
-    void setThumbnailView(const QString& dir, bool readPixmap = true);
+    void setThumbnailView(const QString& dir/*, bool readPixmap = true*/);
 
-    void initListModel(const QString& dir, bool readPixmap = true);
+    void initListModel(const QString& dir/*, bool readPixmap = true*/);
 
     void setTableColWidth();
 

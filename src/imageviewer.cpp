@@ -70,6 +70,8 @@ void ImageViewer::initUI(){
 
 void ImageViewer::initToolBar(){
     QToolBar *fileToolBar = addToolBar(tr("toolbar"));
+    fileToolBar->setStyleSheet("QToolBar {border-bottom: none; border-top: none;}");
+    
     //QToolBar* fileToolBar = new QToolBar;
     //禁止工具栏拖动
     fileToolBar->setMovable(false);
