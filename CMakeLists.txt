@@ -15,7 +15,7 @@ set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windo
 if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
     add_definitions(-D_DEBUG)
-    set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3.1/static")
     ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     ## SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -23,7 +23,7 @@ if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL 
     ## set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>")
 else ()
     message("build type: " "Release")
-    set(QT_STATIC_PATH "d:/ops/qt-6.3/static")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3.1/static")
     # Debug、Release都用静态链接运行库，推荐用于不想让用户装各种VC++运行库的软件
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
