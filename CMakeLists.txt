@@ -12,10 +12,30 @@ set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windo
 
 # add_definitions(-D_AMD64_)
 
+set(OpenCV_DIR d:\\ops\\opencv)
+set(OpenCV_STATIC ON)
+find_package(OpenCV REQUIRED)
+#添加头文件
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+if(MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE" CACHE INTERNAL "" FORCE)
+    # ignore failed
+    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:\"zlib.lib;zlibd.lib\"" CACHE INTERNAL "" FORCE)
+endif()
+
+#if(MSVC)
+#    add_compile_options(
+#        $<$<CONFIG:>:/MT> #---------|
+#        $<$<CONFIG:Debug>:/MTd> #---|-- Statically link the runtime libraries
+#        $<$<CONFIG:Release>:/MT> #--|
+#    )
+#endif()
+
 if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") )
     message("build type: " ${CMAKE_BUILD_TYPE})
     add_definitions(-D_DEBUG)
-    set(QT_STATIC_PATH "d:/ops/qt-6.3.1/static")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3.2/static")
     ## SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     ## SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -23,7 +43,7 @@ if (("${CMAKE_BUILD_TYPE}" STREQUAL "Debug") OR ("${CMAKE_BUILD_TYPE}" STREQUAL 
     ## set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>")
 else ()
     message("build type: " "Release")
-    set(QT_STATIC_PATH "d:/ops/qt-6.3.1/static")
+    set(QT_STATIC_PATH "d:/ops/qt-6.3.2/static")
     # Debug、Release都用静态链接运行库，推荐用于不想让用户装各种VC++运行库的软件
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif ()
@@ -62,8 +82,8 @@ file(GLOB_RECURSE all_src_file
 SET(RCC_FILES resources/images/app.qrc)
 
 if(MSVC)
-set(MY_VERSIONINFO_RC "${PROJECT_BINARY_DIR}/versionInfo.rc")
-configure_file("resources/version/versionInfo.rc.in" "${MY_VERSIONINFO_RC}")
+    set(MY_VERSIONINFO_RC "${PROJECT_BINARY_DIR}/versionInfo.rc")
+    configure_file("resources/version/versionInfo.rc.in" "${MY_VERSIONINFO_RC}")
 endif()
 
 add_executable(${PROJECT_NAME}
@@ -84,7 +104,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt::Core
         Qt::Gui
         Qt::Widgets
-        Qt6::Concurrent
+        Qt::Concurrent
+        opencv_world
         )
 
 #set(ZLIB_INCLUDE_DIR "d:/ops/zlib/include")
