@@ -16,11 +16,11 @@ public:
     explicit FileListModel(ImageCore* imageCore, QFileIconProvider* iconProvider, QObject* parent = nullptr);
     ~FileListModel() override;
 
-    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    //QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
-    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+    //bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
-    Qt::ItemFlags flags(const QModelIndex& index) const override;
+    //Qt::ItemFlags flags(const QModelIndex& index) const override;
 
     QFileInfo fileInfo(const QModelIndex& index) const;
 

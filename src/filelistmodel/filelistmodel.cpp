@@ -13,23 +13,25 @@ FileListModel::FileListModel(ImageCore* imageCore, QFileIconProvider* iconProvid
 
 FileListModel::~FileListModel() = default;
 
-QVariant FileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const {
-    return QStandardItemModel::data(index, role);
-}
+//QVariant FileListModel::data(const QModelIndex & index, int role /*= Qt::DisplayRole*/) const {
+//    return QStandardItemModel::data(index, role);
+//}
+//
+//bool FileListModel::setData(const QModelIndex & index, const QVariant & value, int role) {
+//
+//    return QStandardItemModel::setData(index, value, role);
+//}
 
-bool FileListModel::setData(const QModelIndex & index, const QVariant & value, int role) {
-
-    return QStandardItemModel::setData(index, value, role);
-}
-
-Qt::ItemFlags FileListModel::flags(const QModelIndex& index) const {
-    if (!index.isValid())
-        return QAbstractItemModel::flags(index);
-
-    Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-
-    return flags;
-}
+//Qt::ItemFlags FileListModel::flags(const QModelIndex& index) const {
+//    if (!index.isValid())
+//        return QAbstractItemModel::flags(index);
+//
+//    auto *item = this->itemFromIndex(index);
+//
+//    Qt::ItemFlags flags = item->isEnabled() ? Qt::ItemIsEnabled | Qt::ItemIsSelectable : QAbstractItemModel::flags(index);
+//
+//    return flags;
+//}
 
 QFileInfo FileListModel::fileInfo(const QModelIndex& index) const
 {
@@ -123,6 +125,15 @@ void FileListModel::updateItems(const QList<QFileInfo> fileInfos)
         auto dateItem = new QStandardItem();
         dateItem->setData(fileInfo.lastModified().toString("yyyy-MM-dd"), Qt::DisplayRole);
         this->setItem(itemRow, DateColumn, dateItem);
+
+        if (fileInfo.isFile() && !this->_imageCore->isImageFile(fileInfo))
+        {
+            for (int i = CheckBoxColumn; i < NumberOfColumns; ++i )
+            {
+                this->item(itemRow, i)->setEnabled(false);
+            }
+        }
+
         itemRow++;
     }
     //this->endResetModel();
