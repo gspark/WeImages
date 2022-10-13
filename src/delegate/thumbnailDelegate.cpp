@@ -67,14 +67,21 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
     path.lineTo(rect.topRight() + QPointF(0, radius));
     path.quadTo(rect.topRight(), rect.topRight() + QPointF(-radius, -0));
 
-    if (option.state.testFlag(QStyle::State_MouseOver))
+    bool isImageFile = false;
     {
-        painter->setPen(QPen(Qt::green));
-        painter->setBrush(Qt::NoBrush);
-        painter->drawPath(path);
-    }
-    else {
-        painter->setPen(QPen(Qt::gray));
+        if (!data.fileInfo.isFile() || (isImageFile = this->_imageCore->isImageFile(data.fileInfo)))
+        {
+            if (option.state.testFlag(QStyle::State_MouseOver))
+            {
+                painter->setPen(QPen(Qt::green));
+            }
+            else {
+                painter->setPen(QPen(Qt::black));
+            }
+        }
+        else {
+            painter->setPen(QPen(Qt::gray));
+        }
         painter->setBrush(Qt::NoBrush);
         painter->drawPath(path);
     }
@@ -110,7 +117,13 @@ void ThumbnailDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opt
 
     //绘制名字
     QRect nameRect = QRect(rect.left() + 8, rect.bottom() - 60, THUMBNAIL_WIDE - 4, 20);
-    painter->setPen(QPen(Qt::black));
+    if (!data.fileInfo.isFile() || isImageFile)
+    {
+        painter->setPen(QPen(Qt::black));
+    }
+    else {
+        painter->setPen(QPen(Qt::gray));
+    }
     painter->setFont(QFont("Fixedsys", 12));
     painter->drawText(nameRect, Qt::AlignLeft, painter->fontMetrics().elidedText(data.fileInfo.fileName(), Qt::ElideRight, THUMBNAIL_WIDE - 4));
     //LOG_INFO << "NameRect.left " << NameRect.left() << " NameRect.top " << NameRect.top();
