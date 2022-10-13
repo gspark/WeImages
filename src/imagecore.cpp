@@ -91,20 +91,20 @@ ImageReadData* ImageCore::readFile(const QString& fileName, const QSize& targetS
             imageReader.setScaledSize(targetSize);
         }
 
-        if (imageReader.format() == "svg" || imageReader.format() == "svgz")
-        {
-            // Render vectors into a high resolution
-            QIcon icon;
-            icon.addFile(fileName);
-            readPixmap = icon.pixmap(ICON_WIDE);
-            // If this fails, try reading the normal way so that a proper error message is given
-            if (readPixmap.isNull())
-                readPixmap = QPixmap::fromImageReader(&imageReader);
-        }
-        else
-        {
+        //if (imageReader.format() == "svg" || imageReader.format() == "svgz")
+        //{
+        //    // Render vectors into a high resolution
+        //    QIcon icon;
+        //    icon.addFile(fileName);
+        //    readPixmap = icon.pixmap(ICON_WIDE);
+        //    // If this fails, try reading the normal way so that a proper error message is given
+        //    if (readPixmap.isNull())
+        //        readPixmap = QPixmap::fromImageReader(&imageReader);
+        //}
+        //else
+        //{
             readPixmap = QPixmap::fromImageReader(&imageReader);
-        }
+        //}
     }
 
     ImageReadData* readData = new ImageReadData{
